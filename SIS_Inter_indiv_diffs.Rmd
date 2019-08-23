@@ -1,0 +1,335 @@
+---
+title: "Individual Responses to Interventions - Swinton Framework"
+author: "Iain J Gallagher"
+date: "26/04/2019"
+output:
+  pdf_document: default
+  html_document: default
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+# some housekeeping
+rm(list=ls()) # start with a clean workspace
+# setwd('~/Desktop/swinton_r')
+```
+# Introduction
+
+In this set of exercises we'll use R to work our way through the calculations in Paul Swintons paper ['A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription'](https://www.frontiersin.org/articles/10.3389/fnut.2018.00041/full).
+
+We'll initially use data from Will Hopkins reliability spreadsheet which can be found [here](https://www.sportsci.org/resource/stats/xrely.xls). The data are on countermovement jump (CMJ).
+
+## Typical error of a test (sect 1.1)
+The typical error (TE) of a test is the standard deviation of repeated observed values from the test assuming that nothing changes between testing events. The TE therefore describes the variability we'd expect in repeated observations. Swinton describes the calculation as follows (p3):
+
+> to obtain the TE estimate with a group test-retest design, we first calculate the difference score for each individual, calculate the standard deviation of the differences scores, then divide this value by the square root of 2.
+
+```{r}
+# get the data
+data_in <- read.table('test_retest.csv', sep=',', header=TRUE)
+head(data_in) # you should see the first 6 lines of data, first line is column headers
+
+# create the difference scores
+diff_scores <- (data_in$t1 - data_in$t2)
+mean(diff_scores) # actually quite far from zero here, would give pause for thought, assumption is it's zero
+# get the sd of the difference scores
+sd_diff <- sd(diff_scores)
+# calculate TE
+te <- sd_diff/sqrt(2)
+te
+```
+The mean and sd of differences calculated above describe a normal distribution for the difference scores. We assume that distribution is centred at zero (as noted above the mean difference here is not actually zero). Let's quickly plot that assumed distribution (i.e. zero centered). We can use the ```dnorm``` (density of the normal distribution) function. The function ```dnorm``` returns the value of the probability density function for the normal distribution given parameters for x (an input), the mean (here assumed zero) and the standard deviation (sd).
+```{r}
+x <- seq(from = -4*sd_diff, to= 4*sd_diff, by = 0.1) # generate potential diff scores
+y <- dnorm(x, 0, sd_diff) # remember we're assuming zero mean!
+plot(x,y, type='l', main='Assumed Difference Score Distribution', xlab='Score', ylab='Density') # plot of normally distributed difference scores
+```
+
+So now we have the TE for the test and it's about 1.5cm. As Swinton notes it's important to bear in mind (as ever) that this is an estimate and not a 'true' value.
+
+### True score CI (sect 1.1.1)
+
+We now have an observed score for each individual and the TE for the CMJ. Using these data we can create **confidence intervals** (CI) for the true scores. These CI tell us about plausible values of the true score if we were to *repeat the procedure exactly a large number of times*. Thus CIs are a property of the procedure and need to be interpreted 'on average' over a long run. It's very difficult to say anything useful about a single CI!
+
+>A key point here is that a CI based on a single dataset should **not be interpreted probabilistically** ..., as it is possible to obtain a very high, or very low estimate of TE by chance, such that true score CIs calculated will be inappropriate.
+
+Indeed!
+
+So how do we calculate these CIs. The observed score is the actual (true but unobserved) score plus the TE. So we would have some confidence in an interval that went from the observed score +/- some multiple of the TE.  Recall that we have assumed that the test errors are normally distributed around zero (and we drew that distribution above). Similarly we can assume that test errors are normally distributed around our observed score. 
+
+The normal distribution is constructed such that 95% of the probability under the curve lies between the mean and +/- 1.96 times the sd (see Table 2 in Swinton for other values). For our purposes (estimating a CI) the sd is the TE - this is just an annoying name change. For a 95% CI we need to calculate:
+
+* observed score ± 1.96×TE
+
+Let's look at the 95% CIs for our table of values.
+
+```{r}
+te_limit = te*1.96 # 95% CI interval
+data_in$mean <- rowMeans(data_in[,c(2,3)]) # get means by row for data colums 2 & 3 (t1 & t2)
+data_in$lower = data_in$mean-te_limit # subtract interval
+data_in$upper = data_in$mean+te_limit # add interval
+head(data_in) # check data
+```
+
+The intervals defined by the 95% CI give us plausible values for each individuals performance on the test over repeated applications of the test. 
+
+Tables are all well and good but a picture is worth a thousand words. Let's plot the mean score and TE based CIs.
+```{r}
+# long way round the plotting
+yax <- seq(1,20) # set axis 1-20 (num of people)
+plot(data_in$mean, yax, yaxt='n', ylab='', pch=19, xlab='Mean (cm)', xlim=c(30,65), ylim=c(-1,21)) # plot but don't label y axis
+abline(h=yax, col='grey90') # horiz lines for eyeballing
+mtext(as.character(data_in$subj), side=2, line=1, at=yax, las=2, cex=0.8) # add horizontal names on y axis
+arrows(data_in$mean-te*1.96, yax, data_in$mean+te*1.96, yax, angle=90, code=3, length=0.05) # add error bars for 1.96*TE
+```
+
+### True score CIs of different widths (sect 1.1.2)
+
+Depending on how carefree you feel about precision (i.e. depending on your question importance) you might want more or less inclusive confidence intervals. We can use the ```qnorm``` function in R to give us back the factors we need to multiply our typical error by to get various widths of interval.
+
+```{r}
+# 50% interval - 25% of curve at low end; 25% of curve at high end
+abs(qnorm(0.25))
+# 80% interval - 10% of curve at low end; 10% of curve at high end
+abs(qnorm(0.1))
+# 90% interval - 5% of curve at low end; 5% of curve at high end
+abs(qnorm(0.05))
+# 95% interval - 2.5% of curve at low end; 2.5% of curve at high end
+abs(qnorm(0.025))
+# 99% interval - 0.5% of curve at low end; 0.5% of curve at high end
+abs(qnorm(0.005))
+```
+These correspond to the values for 50%, 80%, 90%, 95% and 99% CIs given in Table 2 of Swinton et al.
+
+How did Swinton come up with the other values in his Table 2? These values are based on the t distribution which is more conservative than the normal distribution. R has a lot of distribution functions built in and we can calculate various different properties of these distributions using the ```dnorm```, ```pnorm```, ```qnorm``` and ```rnorm``` functions. Let's recapitulate the values for TE multiple adjusted (n=10) from Swinton's paper.
+
+```{r}
+# t distribution is defined by mean, sd and normality (degrees of freedom) params
+# 50% interval - 25% of curve at low end; 25% of curve at high end
+abs(qt(0.25, df=9))
+# 80% interval - 10% of curve at low end; 10% of curve at high end
+abs(qt(0.1, df=9))
+# 90% interval - 5% of curve at low end; 5% of curve at high end
+abs(qt(0.05, df=9))
+# 95% interval - 2.5% of curve at low end; 2.5% of curve at high end
+abs(qt(0.025, df=9))
+# 99% interval - 0.5% of curve at low end; 0.5% of curve at high end
+abs(qt(0.005, df=9))
+```
+
+### Coefficient of variation (sect 1.2)
+
+In Section 1.2 of his paper Swinton notes that the TE can be converted into a coefficient of variation (CoV). This metric expresses a variance measure (which TE is) as a percentage of the mean for whatever is being measured i.e. $CoV=(Var/Mean)\times{100}$. Our equivalent is $CoV=(TE/Mean)\times{100}$. 
+
+For our example from above:
+```{r}
+cov <- (te/mean(data_in$mean))*100
+cov
+```
+Our typical error is 3.3% of the mean of the differences. CoV is quite a commonly published measure of reliability - simple algebra will get you from CoV to TE i.e. $TE = (CoV\times{Obs_{score}})/100$.
+
+For example we know Alex has mean CMJ of 43.15 and we know the CoV is 3.3% so we can calculate TE by:
+```{r}
+alex_te <- 3.3*43.15/100
+alex_te
+```
+
+As above an individual TE can be multiplied by a 'confidence factor' to give a range of plausible values.
+
+### Assessing whether meaningful changes have occurred (section 2)
+
+Above we used confidence intervals to identify plausible values for a parameter (CMJ distance) on repeated trials. In a similar way confidence intervals can also be used to generate plausible values for a **true change** over an intervention. Notably we have to make some assumptions for this:
+
+* measurement error (TE) is consistent across indiviuals
+* measurement error (TE) is consistent across the intervention
+
+The latter could well be a hefty assumption but if these assumptions hold up then the true score should vary by the same degree pre- and post-intervention. Following the logic for the test-retest situation the change in observed scores pre-to-post $(Obs_{pre}-Obs_{post})$ should be normally distributed around the true change with variation described by a standard deviation equal to $\sqrt{2}TE$. Remember that the TE is a property of the test procedure and not a property of the context. 
+
+So to estimate plausible values for the true change we need to:
+
+* identify the pre-to-post difference
+* calculate the sd for that difference - $\sqrt{2}TE$
+* multiply the sd by some factor to get a confidence coverage
+
+The only change from the calculations in section 1 is that instead of using $\frac{sd_{diffs}}{\sqrt{2}}$ to calculate the TE (because on test-restest nothing *should* change) we now use $sd_{diffs}$ directly (because we should see change).
+
+As a technical aside the $sd\times CI_{factor}$ is called the *margin of error* (MOE) in statistics.
+```{r}
+# true score ci limit, use sd diffs directly
+true_score_ci <- 1.96*sd_diff # margin of error
+true_score_lims <- data.frame(row.names=data_in$subj, lower=diff_scores-true_score_ci, mean=diff_scores, upper=diff_scores+true_score_ci) # make a dataframe of the results
+true_score_lims
+```
+
+## Criteria for a worthwhile change (sect 2.2)
+
+For practical purposes we might only consider a change in response to e.g. training or intervention successful if the change exceeds some value. Whether the change should be positive or negative is really up to you and what you're hoping to achieve. We might consider an intervention successful if the CI for true change did not include zero. 
+
+```{r}
+# define a function to create a true score plot
+true_score_plot <- function(df, yax_lim, null_val){
+  yax <- seq(1, yax_lim) # set axis num of people
+  plot(df$mean, yax, yaxt='n', ylab='', pch=19, xlab='Mean (cm)', xlim=c(min(df$lower)*1.5,max(df$upper)*1.5), ylim=c(-1, yax_lim), main='True score & 95% CI') # plot but don't label y axis
+    abline(h=yax, col='grey90')
+  mtext(as.character(rownames(df)), side=2, line=1, at=yax, las=2, cex=0.8) # add horizontal names on y axis
+  
+  arrows(df$lower, yax, df$upper, yax, angle=90, code=3, length=0.05) # add error bars
+
+  abline(v=null_val, col='red') # add vertical line at zero
+  
+}
+true_score_plot(true_score_lims, 20, 0)
+```
+
+If we consider any increase in CMJ successful then how many people would we consider as having actually improved from the data in the plot above?
+
+Notably we can set the size of the CI to whatever we deem reasonable (and defendable). It doesn't have to be 95% - that's just convention.
+
+### A Smallest worthwhile change (SWC) (sect 2.2)
+
+Often we may have some knowledge about the size of the effect we want to see. In particular we might consider changes close to zero as irrelevant. Our chosen CI might contain low values even though it doesn't span zero. A change we define as the smallest useful change has been called the **smallest worthwhile change** (SWC). To define the SWC we might bring our expert knowledge to bear, we might take a value from the literature or we might apply some 'brightline' rule. Swinton discusses both theoretical choices for a SWC for changes in muscle carnosine content with supplementation and the use of Cohen's $\delta$ - a standardised measure of effect size for a mean difference.
+
+Cohen's $\delta$ is simply the mean difference divided by the standard deviation of that difference. Cohen suggested a value of 0.2 as a small effect, 0.5 as a medium effect and 0.8 or larger as a large effect. Notably Cohen also said 'use your judgement'... good advice.
+
+For our purposes we wil define SWC as the $sd_{baseline} \times 0.2$ i.e. a small effect size. The change due to the intervention would have to exceed the SWC + TE i.e. the change has to:
+
+* be bigger than typical error
+* be big enough for us to think it important
+
+Let's generate the SWC, add the TE from above and replot the data from above to see how that changes things.
+
+```{r}
+swc <- sd(data_in$t1)*0.2 # swc = baseline sd * 0.2
+swc
+true_score_plot(true_score_lims, 20, swc+true_score_ci)
+swc+true_score_ci
+```
+
+So in order to call an improvement now we'd have to see at least a 5.2cm increase in CMJ from pre (t1) to post (t2). This is huge and not very useful.
+
+Swinton goes on to make some very useful points about choosing a sensible SWC. He points out that the SWC should be below the expected change for most people undergoing the intervention. If no one can achieve the change it's not very useful! In addition the TE of the procedure should not be larger than the gap between SWC and the expected change (i.e. $SWC\leq{TE}\leq{Change}$). If this is not the case then the change due to the intervention will not be detectable. That's what we see in our plot. The TE is so large it masks the very small SWC we have put in place.
+
+### The role of biological variability
+
+In the first two sections of his paper Swinton discusses quantifying uncertainty in baseline values, quantifying uncertainty in changes from baseline values and whether a change is substantively meaningful. He does not address how sure we should be that any change occurred due to our intervention. Specifically he has not yet helped us answer the question:
+
+* How much of this change occurred due to normal variability and how much due to our intervention?
+
+He recommends that
+
+> we concur with recent recommendations ... that researchers focus on identifying the **proportion of response** in group-based interventions 
+
+He then goes on to illustrate procedures for estimating true score that is directly attributable to an intervention and to estimate the proportion of response in a group.
+
+### Estimating variability caused by intervention (sect 3.1)
+
+The only solution is the control group - this allows us to quantify biological (or random) variation and technical error. The approach is to calculate the difference in variation in the control group versus the intervention group across the variation. 
+
+In the control group we have:
+
+* $Var_{control} = TE + Biology$
+
+In the intervention group we have:
+
+* $Var_{intervention} = TE + Biology + Response$
+
+So variance in the intervention group *should* be bigger in this case. But that's not always the case. Can you think of a situation where variance might get smaller in an intervention group?
+
+In any case once we have the variances we can calculate the diffrence. We'll first load some data from an intervention study and then carry out the calculations.
+```{r}
+# variance of the intervention change, different jump data 
+data_in <- read.table('jump_data.csv', header=TRUE, sep=',') # load data
+head(data_in) # look at data
+# plot
+boxplot(data_in$cont, data_in$int) # ALWAYS PLOT YOUR DATA
+# what's the difference in variance pre-to-post intervention
+var_cont <- var(data_in$cont)
+var_int <- var(data_in$int)
+# sd of the intervention
+sd_int <- sqrt(var_int - var_cont)
+sd_int
+# ~2.4cm diff for these data
+```
+So in this case the intervention has increased the variance by 2.4cm.
+
+### Estimating proportion of response (sect 3.2)
+
+Swinton points out that if we assume true change is normally distributed then we can calculate the proportion of response in a group. The true score will be normally distributed with a mean at the observed mean (our best guess) and a standard deviation as described above. These two parameters (mean and sd) fully define a normal distribution.
+```{r}
+# the normal distribution for change
+mean_int <- mean(data_in$int - data_in$cont)
+vals <- seq(0.001, 0.15, 0.001) # x-axis
+prob <- dnorm(vals, mean_int, sd_int) # y-axis
+plot(vals, prob, type='l', main='Assumed True Score Distribution', xlab='Score (m)', ylab='Density')
+```
+
+So this is the distribution of difference scores we might expect with this intervention.
+
+To find the proportion exceeding the SWC we first need the SWC. Again we'll take that as a 'small' effect size (i.e. Cohen's d of 0.2) on the baseline measure.
+```{r}
+swc <- sd(data_in$cont)*0.2
+swc
+```
+So how much of the curve we just drew lies above the SWC?
+```{r}
+pnorm(swc, mean_int, sd_int, lower.tail=FALSE)
+```
+In this case around 93% of the curve lies above the SWC. So we estimate 93% of the group responded. This would be our best guess estimate for the proportion of responders in this particular population.
+
+Let's plot this and see what it looks like.
+```{r}
+# redraw the plot from above
+plot(vals, prob, type='l', main='Assumed True Score Distribution', xlab='Score (m)', ylab='Density')
+# define some values for shading
+upper.x <- 3 # draw to
+lower.x <- swc # draw from
+step <- (upper.x - lower.x) / 1000 # step size from -> to
+sigma <- sd_int # needed for y values below
+mu <- mean_int # needed for y values below
+# define coordinates for shading
+cord.x <- c(lower.x,seq(lower.x,upper.x,step),upper.x)
+cord.y <- c(0,dnorm(seq(lower.x,upper.x,step),mu,sigma),0)
+# draw in the shading
+polygon(cord.x,cord.y,col=rgb(0, 0, 0, 0.5), border=NA)
+segments(x0=swc, y0=0, x1=swc, y1=7.5)
+text(swc, 7.5, 'swc', pos=2, offset = 0.2) # label swc
+```
+
+Finally Swinton advises creating a CI for this proportion by bootstrapping. This technique re-samples from either the data or a distribution. Unpacking the formula used for the bootstrapping in the spreadsheet we have to carry out the following steps:
+
+* resample with replacement from baseline data
+* resample with replacement from post data
+* calculate means for each sample
+* calculate sds for each sample
+* use sds to calculate sd of intervention response
+* calculate proportion beyond swc for each intervention sample
+* calculate relevant percentiles for the proportions
+
+```{r}
+set.seed(1234) # just for reproducibility in samples
+props <- vector(length=1000)
+
+for(i in 1:1000){
+  cont <- sample(data_in$cont, 12, replace=TRUE)
+  int <- sample(data_in$int, 12, replace=TRUE)
+  diffs <- int-cont
+
+  if( sd(int) < sd(cont) ){
+    next
+  }
+  sd_ir <- sqrt(var(int)-var(cont))
+  prop <- pnorm(swc, mean(diffs), sd_ir, lower=FALSE)
+  props[i] <- prop # collect all the proportions
+}
+
+mp <- mean(props[props>0]) # mean of proportions
+sd_p <- sd(props[props>0]) # sd of proportions
+ci <- c((mp - 1.96*sd_p), (mp + 1.96*sd_p)) # 95% CI based on normal dist
+ci
+```
+So the 95%CI for the proportion of response exceeding SWC in this intervention is from 23%-100% (rounding at the top to 100). That's a pretty big CI!
