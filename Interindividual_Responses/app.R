@@ -10,7 +10,7 @@
 library(shiny)
 library(plotly)
 library(ggplot2)
-source("../interindividual_response_functions.R")
+source("interindividual_response_functions.R")
 
 # Define UI for application that draws a histogram
 ui <- navbarPage(
