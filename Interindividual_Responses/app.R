@@ -10,6 +10,7 @@
 library(shiny)
 library(plotly)
 library(ggplot2)
+theme_set(theme_bw())
 source("interindividual_response_functions.R")
 
 # Define UI for application that draws a histogram
