@@ -14,62 +14,117 @@ source("../interindividual_response_functions.R")
 
 # Define UI for application that draws a histogram
 ui <- navbarPage(
-   
-   # Application title
-    "Statistics for Sports Science",
-   
-    # Nav bar layout for different functions
-     
-     tabPanel("Typical Error",
-        p("This component will calculate typical error for a test-retest dataset."),
-        p("The input should be a comma-separated values file (csv)."),
-          sidebarLayout(
-            sidebarPanel(
-              fileInput(inputId = "TE_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-              selectInput(inputId = "var1", label = "Variable 1", choices = ""),
-              selectInput(inputId = "var2", label = "Variable 2", choices = ""),
-              actionButton(inputId = "updateTE", label = "Update")),
+  
+  # Application title
+  "Statistics for Sports Science",
+  
+  #### TYPICAL ERROR COMPONENTS ####
+  
+  navbarMenu("Typical Error",
+             
+      p("Typical error can be calculated from i) individual test data over many trials, ii) group test retest data or iii) from a coefficient of variation."),  
+      p("The calculations used by this webapp are from ..."),
+      p("Select the method you would like to use from the menu above."),
+      
+      #### METHOD 1 - INDIVIDUAL TE METHOD ####       
+      tabPanel("Individual typical error from test retest data",
+            p("This component will calculate typical error from individual test retest data."),
+            p("The input should be a comma-separated values file (csv). Data for each individual (n>10 tests) should be in columns."),
+            
+            sidebarLayout(
+              sidebarPanel(
+                h4("Calculate typical error from individual test retest data."),
+                fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+                numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+                actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
+                ), # closes sidebarPanel
+              
+              mainPanel(
+                h3("Results"),
+                tableOutput(outputId = "indiv_TE_table"),
+                plotlyOutput(outputId = "indiv_TE_plot")
+              ) # close mainPanel
+            ) # close sidebarLayout
+          ), # close tabPanel
+      
+      # other tabPanel would go here
+      
+      #### METHOD 2 - GROUP TEST RETEST DATA METHOD #### 
+      tabPanel("Typical Error from group test retest data",
+               
+               p("This component will calculate typical error of a procedure based on group test-retest data."),
+               p("The input should be a comma-separated values file (csv) of test (col 1) and retest (col 2) data."),
+               sidebarLayout(
+                 sidebarPanel(
+                   fileInput(inputId = "TE_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+                   selectInput(inputId = "test", label = "Variable 1", choices = ""),
+                   selectInput(inputId = "retest", label = "Variable 2", choices = ""),
+                   numericInput(inputId = "te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+                   
+                   actionButton(inputId = "updateTE", label = "Calculate TE")), # close sidebarPanel
+                 
+                 mainPanel(
+                   h3("Results"),
+                   tableOutput(outputId="TE_table"),
+                   plotlyOutput(outputId = "TE_plot")
+                 ) # closes main panel
+               ) # closes sidebarLayout
+      ),# closes tabPanel for group test retest calculations
+      
+      # other tabPanel goes here
+
+      #### METHOD 3 - TE FROM LITERATURE ####
+      tabPanel("Typical error from a literature derived coefficient of variation",
+            sidebarLayout(
+              sidebarPanel(
+                numericInput(inputId = "obs_score", label = "Obs Score", value = 0),
+                numericInput(inputId = "cov", label = "Enter CoV", value = 0),
+                numericInput(inputId = "lit_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+                actionButton(inputId = "update_cov_TE", label = "Calculate TE")
+              ),
+            
             mainPanel(
               h3("Results"),
-              tableOutput(outputId="TE_table"),
-              plotlyOutput(outputId = "TE_plot")
-            )
-      )
-  ), # closes tabPanel
-  
-  tabPanel("Change Scores",
-           p("This component will calculate change scores."),
-           p("The input should be a comma-separated values file (csv)."),
-           sidebarLayout(
-             sidebarPanel(
-               fileInput(inputId = "CS_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-               selectInput(inputId = "var1", label = "Variable 1", choices = ""),
-               selectInput(inputId = "var2", label = "Variable 2", choices = ""),
-               actionButton(inputId = "updateCS", label = "Update")), # press to run functions on server
-             mainPanel(
-               h3("Results")
-             )
-           )
-  ), # closes tabPanel
-  
-  tabPanel("Proportion of Response",
-           p("This component will calculate proportion of response."),
-           p("The input should be a comma-separated values file (csv)."),
-           sidebarLayout(
-             sidebarPanel(
-               fileInput(inputId = "PR_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-               selectInput(inputId = "var1", label = "Variable 1", choices = ""),
-               selectInput(inputId = "var2", label = "Variable 2", choices = ""),
-               actionButton(inputId = "updatePR", label = "Update")),
-             mainPanel(
-               h3("Results")
-             )
-           )
-  ) # closes tabPanel
-) # closes navbar
+              tableOutput(outputId = "cov_TE_table")
+            ) # close main panel for CoV
+          ) # close sidebarLayout
+        ) # close CoV tabPanel
+  ) # close navbarMenu
+) # closes navbarPage
+
+#### END UI PART #### 
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
+  
+  # INDIV TE ###############
+  indiv_TE_reactive <- reactive({
+    inFile <- input$indiv_TE_data
+    if (is.null(inFile))
+      return(NULL)
+    read.csv(inFile$datapath)
+  })
+    # on update button
+    observeEvent(input$update_indiv_TE, {
+    if(!is.null(input$indiv_TE_data)){
+      
+      df <- read.csv(input$indiv_TE_data$datapath, header = TRUE, sep = ",")
+      var <- input$indiv_te_ci
+      
+      # dat <- data.frame(var1 = test, var2 = retest)
+      indiv_TEResult <- indiv_te(df=df, ci=var)
+      
+      # Table
+      output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
+      
+      # Plot
+      indiv_te_plot <- ggplot(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`)) + geom_pointrange() + coord_flip()
+      indiv_te_plot <- ggplotly(indiv_te_plot)
+      output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
+      
+    }
+  })
+  
   # TE #####################
   # get data
   TE_reactive <- reactive({
@@ -79,10 +134,10 @@ server <- function(input, output, session) {
     read.csv(inFile$datapath)
   })
   
-  # get variables
+  # get variables into R session
   observe({
-    updateSelectInput(session, "var1", choices = names(TE_reactive()))
-    updateSelectInput(session, "var2", choices = names(TE_reactive()))
+    updateSelectInput(session, "test", choices = names(TE_reactive()))
+    updateSelectInput(session, "retest", choices = names(TE_reactive()))
   })
   
   # on update button
@@ -90,26 +145,41 @@ server <- function(input, output, session) {
     if(!is.null(input$TE_data)){
       
       df <- read.csv(input$TE_data$datapath, header = TRUE, sep = ",")
-      var1 <- df[, which(colnames(df) == input$var1)]
-      var2 <- df[, which(colnames(df) == input$var2)]
-      dat <- data.frame(var1 = var1, var2 = var2)
-      TEResult <- te(t1 = var1, t2 = var2)
+      var1 <- df[, which(colnames(df) == input$test)]
+      var2 <- df[, which(colnames(df) == input$retest)]
+      var3 <- input$te_ci
+      
+      # dat <- data.frame(var1 = test, var2 = retest)
+      TEResult <- te(t1 = var1, t2 = var2, ci=var3)
       
       # Table
-      rownames(TEResult) <- "Typical Error Results"
       output$TE_table <- renderTable(TEResult, rownames = TRUE)
       
       # Plot
-      x <- seq(from = -4*TEResult[,2], to= 4*TEResult[,2], by = 0.1) # generate potential diff scores
-      y <- dnorm(x, 0, TEResult[,2]) # remember we're assuming zero mean!
-      density_df <- data.frame(x=x, y=y)
-      dens_p <- ggplot(density_df, aes(x=x)) + stat_density(position="identity", geom="line") # plot of normally distributed difference scores
+      x <- seq(from = -3*TEResult[,2], to= 3*TEResult[,2], by = 0.1) # generate potential diff scores
+      # create plot ASSUMING ZERO MEAN
+      density_df <- data.frame(x=x)
+      # plot
+      dens_p <- ggplot(density_df, aes(x=x)) + stat_function(fun=dnorm, n=101, args=list(mean=0, sd=TEResult[,2])) # plot of normally distributed difference scores
+      dens_p <- dens_p + labs(title="Distribution of difference scores")
       dens_p <- ggplotly(dens_p)
       output$TE_plot <- renderPlotly(dens_p)
     }
-}) # close observe event
+  }) # close observe event
+  
+  
+  # COV TE ####
+  
+  # on update button
+  observeEvent(input$update_cov_TE,{
+    var1 <- input$cov
+    var2 <- input$obs_score
+    var3 <- input$lit_te_ci
+    cov_TEResult <- cov_te(cv=var1, os=var2, ci=var3)
+    
+    output$cov_TE_table <- renderTable(cov_TEResult, rownames = FALSE)
+  })
   
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
-
