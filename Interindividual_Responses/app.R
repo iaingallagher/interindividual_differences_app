@@ -5,7 +5,7 @@
 # Find out more about building applications with Shiny here:
 #
 #    http://shiny.rstudio.com/
-#
+#    rsconnect::deployApp('Interindividual_Responses')
 
 library(shiny)
 library(plotly)
@@ -37,6 +37,8 @@ ui <- navbarPage(
                 h4("Calculate typical error from individual test retest data."),
                 fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
                 numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+                radioButtons(inputId = "ci_multiplier", label = "CI Multiplier", choices = c("<30 Individuals"="tDist", ">=30 Individuals"="normDist"), selected = "<30 Individuals"),
+                
                 actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
                 ), # closes sidebarPanel
               
@@ -104,7 +106,8 @@ server <- function(input, output, session) {
     if (is.null(inFile))
       return(NULL)
     read.csv(inFile$datapath)
-  })
+  }) # closes reactive
+  
     # on update button
     observeEvent(input$update_indiv_TE, {
     if(!is.null(input$indiv_TE_data)){
@@ -112,19 +115,26 @@ server <- function(input, output, session) {
       df <- read.csv(input$indiv_TE_data$datapath, header = TRUE, sep = ",")
       var <- input$indiv_te_ci
       
-      # dat <- data.frame(var1 = test, var2 = retest)
-      indiv_TEResult <- indiv_te(df=df, ci=var)
+      observeEvent(input$ci_multiplier, {
+          indiv_TEResult <- switch(input$ci_multiplier,
+          tDist = indiv_te_t(df=df, ci=var),
+          normDist = indiv_te_normal(df=df, ci=var))
       
       # Table
       output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
       
       # Plot
-      indiv_te_plot <- ggplot(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`)) + geom_pointrange() + coord_flip()
-      indiv_te_plot <- ggplotly(indiv_te_plot)
-      output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
+      indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) 
+      indiv_te_plot <- indiv_te_plot + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Moderated Lower CI Limit`, ymax=`Moderated Upper CI Limit`), colour='chocolate', size=1.2) 
+      indiv_te_plot <- indiv_te_plot + coord_flip() 
       
-    }
-  })
+      # output
+      output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
+    }) # closes observeEvent for ci multiplier
+    } # closes if !null statement
+      
+  }) # closes observeEvent
+
   
   # TE #####################
   # get data
