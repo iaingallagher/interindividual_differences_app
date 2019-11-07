@@ -45,7 +45,7 @@ ui <- navbarPage(
               mainPanel(
                 h3("Results"),
                 tableOutput(outputId = "indiv_TE_table"),
-                plotlyOutput(outputId = "indiv_TE_plot")
+                plotlyOutput(outputId = "indiv_TE_plot", width="50%", height="75%")
               ) # close mainPanel
             ) # close sidebarLayout
           ), # close tabPanel
@@ -130,6 +130,7 @@ server <- function(input, output, session) {
       
       # output
       output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
+      
     }) # closes observeEvent for ci multiplier
     } # closes if !null statement
       
