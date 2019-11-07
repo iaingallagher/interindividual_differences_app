@@ -45,12 +45,14 @@ ui <- navbarPage(
               mainPanel(
                 h3("Results"),
                 tableOutput(outputId = "indiv_TE_table"),
+                downloadButton("downloadData", "Download Table"),
                 plotlyOutput(outputId = "indiv_TE_plot", width="50%", height="75%")
               ) # close mainPanel
             ) # close sidebarLayout
           ), # close tabPanel
       
       # other tabPanel would go here
+      # CI for change; data either pre-post intervention with TE (3 cols)
       
       #### METHOD 2 - GROUP TEST RETEST DATA METHOD #### 
       tabPanel("Typical Error from group test retest data",
@@ -122,6 +124,14 @@ server <- function(input, output, session) {
       
       # Table
       output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
+      
+      # download data
+      output$downloadData <- downloadHandler(
+        filename = "indiv_TEResult.csv",
+        content = function(file){
+          write.csv(indiv_TEResult, file, row.names=FALSE)
+        }
+      )
       
       # Plot
       indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) 
