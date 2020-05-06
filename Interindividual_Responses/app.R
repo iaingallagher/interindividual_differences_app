@@ -18,27 +18,33 @@ ui <- navbarPage(
   
   # Application title
   "Statistics for Sports Science",
+  mainPanel(img(src='swinton_2018.png', align = "left", width=400)),
+  
+  p("Swinton, Paul A., Ben Stephens Hemingway, Bryan Saunders, Bruno Gualano, and Eimear Dolan. 2018. ‘A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription’. Frontiers in Nutrition 5. https://doi.org/10.3389/fnut.2018.00041.
+"),
+  
+  p("Typical error can be calculated from"),
+  p("i) individual test data over many trials, ii) group test retest data or iii) from a coefficient of variation."),  
+  p("The calculations used by this webapp are from Swinton et al (2018) and Swinton et al (MS in prep)."),
+  p("Select the method you would like to use from the menu above."),
   
   #### TYPICAL ERROR COMPONENTS ####
   
   navbarMenu("Typical Error",
-             
-      p("Typical error can be calculated from i) individual test data over many trials, ii) group test retest data or iii) from a coefficient of variation."),  
-      p("The calculations used by this webapp are from ..."),
-      p("Select the method you would like to use from the menu above."),
       
       #### METHOD 1 - INDIVIDUAL TE METHOD ####       
       tabPanel("Individual typical error from test retest data",
+               
+            h3("Typical Error from Individual Test Data"),
             p("This component will calculate typical error from individual test retest data."),
             p("The input should be a comma-separated values file (csv). Data for each individual (n>10 tests) should be in columns."),
+            p("The confidence intervals from the individual TE are calculated using the t-distribution irrespective of the number of observations for each individual.s"),
             
             sidebarLayout(
               sidebarPanel(
                 h4("Calculate typical error from individual test retest data."),
                 fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
                 numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
-                radioButtons(inputId = "ci_multiplier", label = "CI Multiplier", choices = c("<30 Individuals"="tDist", ">=30 Individuals"="normDist"), selected = "<30 Individuals"),
-                
                 actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
                 ), # closes sidebarPanel
               
@@ -57,6 +63,7 @@ ui <- navbarPage(
       #### METHOD 2 - GROUP TEST RETEST DATA METHOD #### 
       tabPanel("Typical Error from group test retest data",
                
+               h3("Typical Error from Group Test-Retest Data"),
                p("This component will calculate typical error of a procedure based on group test-retest data."),
                p("The input should be a comma-separated values file (csv) of test (col 1) and retest (col 2) data."),
                sidebarLayout(
@@ -80,6 +87,10 @@ ui <- navbarPage(
 
       #### METHOD 3 - TE FROM LITERATURE ####
       tabPanel("Typical error from a literature derived coefficient of variation",
+               
+            h3("Typical Error from literature data"),
+            p("This component will calculate typical error from coefficient of variation data from literature or other sources."),
+            
             sidebarLayout(
               sidebarPanel(
                 numericInput(inputId = "obs_score", label = "Obs Score", value = 0),
@@ -94,7 +105,18 @@ ui <- navbarPage(
             ) # close main panel for CoV
           ) # close sidebarLayout
         ) # close CoV tabPanel
-  ) # close navbarMenu
+  ), # close navbarMenu
+  
+  #### CHANGE SCORE COMPONENTS ####
+  
+  navbarMenu("Change Scores"),
+  
+  #### PROP RESPONSE COMPONENTS ####
+  
+  navbarMenu("Proportion of Response")
+  
+  
+  
 ) # closes navbarPage
 
 #### END UI PART #### 
@@ -105,6 +127,7 @@ server <- function(input, output, session) {
   # INDIV TE ###############
   indiv_TE_reactive <- reactive({
     inFile <- input$indiv_TE_data
+    
     if (is.null(inFile))
       return(NULL)
     read.csv(inFile$datapath)
@@ -112,16 +135,14 @@ server <- function(input, output, session) {
   
     # on update button
     observeEvent(input$update_indiv_TE, {
+      
     if(!is.null(input$indiv_TE_data)){
       
       df <- read.csv(input$indiv_TE_data$datapath, header = TRUE, sep = ",")
       var <- input$indiv_te_ci
       
-      observeEvent(input$ci_multiplier, {
-          indiv_TEResult <- switch(input$ci_multiplier,
-          tDist = indiv_te_t(df=df, ci=var),
-          normDist = indiv_te_normal(df=df, ci=var))
-      
+      indiv_TEResult <- indiv_te_t(df=df, ci=var)
+
       # Table
       output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
       
@@ -129,22 +150,17 @@ server <- function(input, output, session) {
       output$downloadData <- downloadHandler(
         filename = "indiv_TEResult.csv",
         content = function(file){
-          write.csv(indiv_TEResult, file, row.names=FALSE)
-        }
-      )
+          write.csv(indiv_TEResult, file, row.names=FALSE) })
       
       # Plot
       indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) 
       indiv_te_plot <- indiv_te_plot + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Moderated Lower CI Limit`, ymax=`Moderated Upper CI Limit`), colour='chocolate', size=1.2) 
       indiv_te_plot <- indiv_te_plot + coord_flip() 
-      
       # output
       output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
+      } # closes if statement
       
-    }) # closes observeEvent for ci multiplier
-    } # closes if !null statement
-      
-  }) # closes observeEvent
+    }) # closes observeEvent
 
   
   # TE #####################
