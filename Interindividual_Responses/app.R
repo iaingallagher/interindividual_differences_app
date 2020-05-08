@@ -50,6 +50,9 @@ ui <- navbarPage(
               
               mainPanel(
                 h3("Results"),
+                p("The table below shows the mean for each individual over all tests and the typical error estimated for each individual."),
+                p("Two confidence values are shown for the TE. The moderated confidence interval takes account of the number of tests carried out on each individual whilst the unmoderated confidence interval is wider because it does not accont for the extra data collected for each individual through the repeated tests."),
+                p("The data are shown on a plot below the table."),
                 tableOutput(outputId = "indiv_TE_table"),
                 downloadButton("downloadData", "Download Table"),
                 plotlyOutput(outputId = "indiv_TE_plot", width="50%", height="75%")
@@ -138,10 +141,10 @@ server <- function(input, output, session) {
       
     if(!is.null(input$indiv_TE_data)){
       
-      df <- read.csv(input$indiv_TE_data$datapath, header = TRUE, sep = ",")
-      var <- input$indiv_te_ci
+      df <- read.csv(input$indiv_TE_data$datapath, header = TRUE, sep = ",") # dataframe in
+      var <- input$indiv_te_ci # user chosen CI
       
-      indiv_TEResult <- indiv_te_t(df=df, ci=var)
+      indiv_TEResult <- indiv_te_t(df=df, ci=var) # apply function
 
       # Table
       output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
@@ -153,10 +156,13 @@ server <- function(input, output, session) {
           write.csv(indiv_TEResult, file, row.names=FALSE) })
       
       # Plot
-      indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) 
-      indiv_te_plot <- indiv_te_plot + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Moderated Lower CI Limit`, ymax=`Moderated Upper CI Limit`), colour='chocolate', size=1.2) 
-      indiv_te_plot <- indiv_te_plot + coord_flip() 
-      # output
+      indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=ID, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) + scale_x_discrete(limits=indiv_TEResult$ID)
+      
+      indiv_te_plot <- indiv_te_plot + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Moderated Lower CI Limit`, ymax=`Moderated Upper CI Limit`), colour='chocolate', size=1.2)
+      
+      indiv_te_plot <- indiv_te_plot + coord_flip()
+    
+      # output as plotly
       output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
       } # closes if statement
       
