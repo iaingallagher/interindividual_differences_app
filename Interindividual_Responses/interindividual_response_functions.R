@@ -4,8 +4,36 @@
 
 # 1.1 INDIVIDUAL TE WITH CI
 
-# Individual TE CI
-# uses t-dist, asymptotic to normal if >30 individuals
+# Individual te CI, normal dist with >30 indivs
+# sd of >10 test-retest in same individual
+# outout df with mean value and te (column sd)
+indiv_te_normal <- function(df, ci){
+  indiv_rep_means <- apply(df, 2, mean)
+  indiv_te_vals <- apply(df,2,sd)
+  
+  # calc unmoderated ci for TE's
+  ci_lim <- qnorm((1-ci)/2, lower.tail=F)  # for normal dist
+  indiv_te_lower <- indiv_rep_means - (indiv_te_vals*ci_lim)
+  indiv_te_upper <- indiv_rep_means + (indiv_te_vals*ci_lim)
+  
+  ## calc moderated ci for TE's
+  
+  # se for CI 
+  te_se <- indiv_te_vals/sqrt(nrow(df))
+  
+  # CI's
+  ci_lim <- qnorm((1-ci)/2, lower.tail=F)  # for normal dist
+  mod_indiv_te_lower <- indiv_rep_means - (te_se*ci_lim)
+  mod_indiv_te_upper <- indiv_rep_means + (te_se*ci_lim)
+  
+  output_df <- data.frame(id = colnames(df), indiv_means = indiv_rep_means, indiv_te = indiv_te_vals, mod_ci_lo = mod_indiv_te_lower, mod_ci_hi = mod_indiv_te_upper, ci_lo = indiv_te_lower , ci_hi = indiv_te_upper)
+  colnames(output_df) <- c("ID", "Indiv Test Means", "Indiv TE", "Moderated Lower CI Limit", "Moderated Upper CI Limit", "Lower CI Limit", "Upper CI Limit")
+  # rownames(output_df) <- colnames(df)
+  return(output_df)
+}
+
+
+# Individual te CI, t dist with <30 indivs
 # sd of >10 test-retest in same individual
 # outout df with mean value and te (column sd)
 indiv_te_t <- function(df, ci){
@@ -14,18 +42,18 @@ indiv_te_t <- function(df, ci){
   
   deg_free <- nrow(df)
   
-  # calc CI for TE's
-  ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for t dist
+  # calc unmoderated ci for TE's
+  ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for normal dist
   indiv_te_lower <- indiv_rep_means - (indiv_te_vals*ci_lim)
   indiv_te_upper <- indiv_rep_means + (indiv_te_vals*ci_lim)
   
   ## calc moderated ci for TE's
   
-  # se for TE 
+  # se for CI 
   te_se <- indiv_te_vals/sqrt(nrow(df))
   
   # CI's
-  ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for t dist
+  ci_lim <- qnorm((1-ci)/2, lower.tail=F)  # for normal dist
   mod_indiv_te_lower <- indiv_rep_means - (te_se*ci_lim)
   mod_indiv_te_upper <- indiv_rep_means + (te_se*ci_lim)
   
@@ -59,7 +87,7 @@ te <- function(t1, t2, ci){
 }
 
 
-# TE from CoV
+# TE form CoV
 # input os observed score & CoV for procedure
 cov_te <- function(cv, os, ci){
   cov_te_est <- (cv*os)/100 # Swinton 2018
