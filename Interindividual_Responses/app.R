@@ -85,8 +85,6 @@ ui <- navbarPage(
                  ) # closes main panel
                ) # closes sidebarLayout
       ),# closes tabPanel for group test retest calculations
-      
-      # other tabPanel goes here
 
       #### METHOD 3 - TE FROM LITERATURE ####
       tabPanel("Typical error from a literature derived coefficient of variation",
@@ -112,14 +110,31 @@ ui <- navbarPage(
   
   #### CHANGE SCORE COMPONENTS ####
   
-  navbarMenu("Change Scores"),
+  navbarMenu("Change Scores",
   
-  #### PROP RESPONSE COMPONENTS ####
+    tabPanel("Typical Error individual intervention data",
+           
+           h3("Typical Error for Individual Change Over Intervention"),
+           p("This component will calculate a confidence interval for a change over an intervention for a single individual."),
+           sidebarLayout(
+             sidebarPanel(
+               numericInput(inputId = "pre", label = "Pre Score", value = 0),
+               numericInput(inputId = "post", label = "Post Score", value = 0),
+               numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
+               numericInput(inputId = "indiv_cs_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+               
+               actionButton(inputId = "update_indiv_CS", label = "Calculate")), # close sidebarPanel
+             
+             mainPanel(
+               h3("Results"),
+               tableOutput(outputId="indiv_CS_table"),
+               plotlyOutput(outputId = "indiv_CS_plot")) # closes main panel
+           ) # closes sidebarLayout
+  ) # closes tabPanel for group intervention calcs
+) # close navbar menu
   
-  navbarMenu("Proportion of Response")
-  
-  
-  
+  #### PROP RESPONSE COMPONENTS ###
+
 ) # closes navbarPage
 
 #### END UI PART #### 
@@ -169,7 +184,7 @@ server <- function(input, output, session) {
     }) # closes observeEvent
 
   
-  # TE #####################
+  # TEST-RETEST TE #####################
   # get data
   TE_reactive <- reactive({
     inFile <- input$TE_data
@@ -224,6 +239,33 @@ server <- function(input, output, session) {
     output$cov_TE_table <- renderTable(cov_TEResult, rownames = FALSE)
   })
   
+  # INDIVIDUAL CHANGE SCORES ###
+  
+  
+  # INDIV CHANGE SCORES ###############
+  # indiv_cs_reactive <- reactive({
+    # on update button
+    observeEvent(input$update_indiv_CS, {
+      
+      pre <- input$pre
+      post <- input$post
+      te <- input$te
+      ci <- input$indiv_cs_ci
+    
+      indiv_cs_data <- indiv_cs(pre = pre, post = post, te = te, ci = ci)
+  
+      output$indiv_CS_table <- renderTable(indiv_cs_data)
+    
+      # create plot
+      ci_val <- ci * 100
+      ax_lab <- paste("Mean Difference +/- ", ci_val, "% CI", sep = "")
+      
+      indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower Change CI Limit`, ymax=`Upper Change CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank()) 
+     indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + coord_flip()
+    
+     output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
+  }) # close observe event
+  # }) # close reactive  
 }
 # Run the application 
 shinyApp(ui = ui, server = server)

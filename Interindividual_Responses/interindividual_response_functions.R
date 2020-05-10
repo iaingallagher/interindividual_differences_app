@@ -1,8 +1,8 @@
 # interindividual response functions
 
-# 1 - TYPICAL ERROR
+# 1 - TYPICAL ERROR ####
 
-# 1.1 INDIVIDUAL TE WITH CI
+# 1.1 INDIVIDUAL TE WITH CI #####
 
 # Individual te CI, normal dist with >30 indivs
 # sd of >10 test-retest in same individual
@@ -64,7 +64,8 @@ indiv_te_t <- function(df, ci){
 }
 
 
-# 1.2 SIMPLE TEST-RETEST DIFFS
+# 1.2 SIMPLE TEST-RETEST DIFFS #####
+
 # input two vectors representing test data 1 and test data 2
 # te calculated as per Swinton 2018 (sd(diffs)/sqrt(2))
 te <- function(t1, t2, ci){
@@ -87,11 +88,14 @@ te <- function(t1, t2, ci){
 }
 
 
-# TE form CoV
-# input os observed score & CoV for procedure
+# 1.3 TE FROM PREV LIT CoV #####
+
+# input observed score & CoV for procedure
 cov_te <- function(cv, os, ci){
   cov_te_est <- (cv*os)/100 # Swinton 2018
+  
   # calc ci for TE's
+  # here use normal dist because we can't get df for use of t-dist
   ci_lim <- qnorm((1-ci)/2, lower.tail=F) # for normal dist
   cv_te_lower <- os - (cov_te_est*ci_lim)
   cv_te_upper <- os + (cov_te_est*ci_lim)
@@ -102,39 +106,51 @@ cov_te <- function(cv, os, ci){
 }
 
 
-# 2 - Change scores
-# individual CI for change scores
-# input two vectors representing pre & post intervention values, est te  
-te <- function(t1, t2, ci){
-  diffs <- t1-t2
-  mean_diff <- mean(diffs)
-  sd_diff <- sd(diffs)
-  typical_error <- sd(t1-t2)/sqrt(2)
+# 2 - CHANGE SCORES ####
+
+# 2.1 - individual CI for change scores
+# input two vectors representing pre & post intervention values for number of indivs
+# est te & te ci
+
+# Individual te
+# output df with change score value and ci limits
+indiv_cs <- function(pre, post, te, ci){
+  indiv_change_score <- (post-pre) # vector of change scores
+  indiv_change_score_sd <- te*sqrt(2) # vector of change score sds
   
-  # TODO:bake in norm or t usinf selector in app
+  # use t-dist for CIs
+  deg_free <- length(indiv_change_score)
+  # calc ci for change scores
+  # ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for t dist
+  ci_lim <- qnorm((1-ci)/2, lower.tail=F) # for norm dist
+  indiv_cs_lower <- indiv_change_score - (indiv_change_score_sd*ci_lim)
+  indiv_cs_upper <- indiv_change_score + (indiv_change_score_sd*ci_lim)
   
-  # calc ci
-  ci_lim <- qnorm((1-ci)/2, lower.tail=F)  # for normal dist
+  output_df <- data.frame(indiv_change = indiv_change_score, indiv_cs_sd = indiv_change_score_sd, te = te, ci_lo = indiv_cs_lower , ci_hi = indiv_cs_upper)
+  colnames(output_df) <- c("Change", "Change SD", "TE", "Lower Change CI Limit", "Upper Change CI Limit")
+  
+  return(output_df)
+}
+
+# 2.2 - group CI for change scores - NEEDS WORK, MULTIPLE OBS FOR EACH INDIV ATM
+# input df with ID, pre & post cols; n > 1 individual
+# est te & te ci
+# output mean diff & TE bounds
+
+group_cs <- function(pre, post, te, ci){
+  obs_diff <- post-pre
+  mean_diff <- mean(obs_diff)
+  sd_diff <- sd(obs_diff)
+  typical_error <- sd(post-pre)/sqrt(2)
+  
+  # calc ci with t-dist
+  deg_free <- length(obs_diff) # get df from number of obs
+  ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for normal dist
   te_lower <- mean_diff - (typical_error*ci_lim)
   te_upper <- mean_diff + (typical_error*ci_lim)
   
-  te_return_df <- data.frame("Mean Difference"=mean_diff, "SD Differences"=sd_diff, "Typical Error"=typical_error, "True Score CI lower"=te_lower, "True Score CI Upper"=te_upper)
+  te_return_df <- data.frame("Mean Difference"=mean_diff, "SD Differences"=sd_diff, "Typical Error"=typical_error, "Obs Score CI lower"=te_lower, "Obs Score CI Upper"=te_upper)
   
   return(te_return_df)
 }
 
-# Individual te
-# outout df with change score value and ci limits
-indiv_cs <- function(pre, post, te, ci){
-  indiv_change_scores <- (post-pre) # vector of change scores
-  indiv_change_score_sd <- te*sqrt(2) # vector of change score sds
-  
-  # calc ci for change scores
-  ci_lim <- qnorm((1-ci)/2, lower.tail=F)  # for normal dist
-  indiv_cs_lower <- indiv_change_score - (change_score_sd*ci_lim)
-  indiv_cs_upper <- indiv_change_score + (change_score_sd*ci_lim)
-  
-  output_df <- data.frame(id = colnames(df), indiv_change = indiv_change_scores, indiv_cs_sd = indiv_change_score_sd, ci_lo = indiv_cs_lower , ci_hi = indiv_cs_upper)
-  colnames(output_df) <- c("ID", "Change", "Change SD", "Lower Change CI Limit", "Upper Change CI Limit")
-  return(output_df)
-}
