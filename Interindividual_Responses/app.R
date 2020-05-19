@@ -114,7 +114,7 @@ ui <- navbarPage(
   
     tabPanel("Typical Error individual intervention data",
            
-           h3("Typical Error for Individual Change Over Intervention"),
+           h3("Typical Error for Individual Change Score"),
            p("This component will calculate a confidence interval for a change over an intervention for a single individual."),
            sidebarLayout(
              sidebarPanel(
@@ -129,10 +129,32 @@ ui <- navbarPage(
                h3("Results"),
                tableOutput(outputId="indiv_CS_table"),
                plotlyOutput(outputId = "indiv_CS_plot")) # closes main panel
-           ) # closes sidebarLayout
-  ) # closes tabPanel for group intervention calcs
-) # close navbar menu
+           ), # closes sidebarLayout
+           
+  ), # closes tabPanel for single indiv change scores
   
+  tabPanel("Typical Error for individuals in a group",
+           
+           h3("Typical Error for Several Individuals Change Scores"),
+           p("This component will calculate a confidence interval for a change over an intervention for a group of individuals."),
+           sidebarLayout(
+             sidebarPanel(
+               fileInput(inputId = "test_results", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+               selectInput(inputId = "pre", label = "Pre Scores", choices = ""),
+               selectInput(inputId = "post", label = "Post Scores", choices = ""),
+               numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
+               numericInput(inputId = "cs_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+               
+               actionButton(inputId = "update_indiv_CS", label = "Calculate")), # close sidebarPanel
+             
+             mainPanel(
+               h3("Results"),
+               tableOutput(outputId="group_CS_table"),
+               plotlyOutput(outputId = "group_CS_plot")) # closes main panel
+              ) # closes sidebarLayout
+             ) # closes tab panel - change score for group of individuals
+           ) # closes navbarMenu
+
   #### PROP RESPONSE COMPONENTS ###
 
 ) # closes navbarPage
