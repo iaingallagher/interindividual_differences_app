@@ -16,7 +16,7 @@ source("interindividual_response_functions.R")
 # Define UI for application that draws a histogram
 ui <- navbarPage(
   
-  # Application title
+  #### MAIN PAGE ####
   "Statistics for Sports Science",
   mainPanel(img(src='swinton_2018.png', align = "left", width=400)),
   
@@ -32,136 +32,121 @@ ui <- navbarPage(
   
   navbarMenu("Typical Error",
       
-      #### METHOD 1 - INDIVIDUAL TE METHOD ####       
+  #### 1 - INDIVIDUAL TE METHOD ####       
       tabPanel("Individual typical error from test retest data",
                
-            h3("Typical Error from Individual Test Data"),
-            p("This component will calculate typical error from individual test retest data."),
-            p("The input should be a comma-separated values file (csv). Data for each individual (n>10 tests) should be in columns."),
-            p("The confidence intervals from the individual TE are calculated using the t-distribution irrespective of the number of observations for each individual.s"),
+        h3("Typical Error from Individual Test Data"),
+        p("This component will calculate typical error from individual test retest data."),
+        p("The input should be a comma-separated values file (csv). Data for each individual (n>10 tests) should be in columns."),
+        p("The confidence intervals from the individual TE are calculated using the t-distribution irrespective of the number of observations for each individual.s"),
             
-            sidebarLayout(
-              sidebarPanel(
-                h4("Calculate typical error from individual test retest data."),
-                fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-                numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
-                actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
-                ), # closes sidebarPanel
+          sidebarLayout(
+            sidebarPanel(
+              h4("Calculate typical error from individual test retest data."),
+              fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+              numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
+              actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
+            ), # closes sidebarPanel
               
-              mainPanel(
-                h3("Results"),
-                p("The table below shows the mean for each individual over all tests and the typical error estimated for each individual."),
-                p("Two confidence values are shown for the TE. The moderated confidence interval takes account of the number of tests carried out on each individual whilst the unmoderated confidence interval is wider because it does not accont for the extra data collected for each individual through the repeated tests."),
-                p("The data are shown on a plot below the table."),
-                tableOutput(outputId = "indiv_TE_table"),
-                downloadButton("downloadData", "Download Table"),
-                plotlyOutput(outputId = "indiv_TE_plot", width="50%", height="75%")
-              ) # close mainPanel
-            ) # close sidebarLayout
-          ), # close tabPanel
-      
-      # other tabPanel would go here
-      # CI for change; data either pre-post intervention with TE (3 cols)
-      
-      #### METHOD 2 - GROUP TEST RETEST DATA METHOD #### 
-      tabPanel("Typical Error from group test retest data",
-               
-               h3("Typical Error from Group Test-Retest Data"),
-               p("This component will calculate typical error of a procedure based on group test-retest data."),
-               p("The input should be a comma-separated values file (csv) of test (col 1) and retest (col 2) data."),
-               sidebarLayout(
-                 sidebarPanel(
-                   fileInput(inputId = "TE_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-                   selectInput(inputId = "test", label = "Variable 1", choices = ""),
-                   selectInput(inputId = "retest", label = "Variable 2", choices = ""),
-                   numericInput(inputId = "te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
-                   
-                   actionButton(inputId = "updateTE", label = "Calculate TE")), # close sidebarPanel
-                 
-                 mainPanel(
-                   h3("Results"),
-                   tableOutput(outputId="TE_table"),
-                   plotlyOutput(outputId = "TE_plot")
-                 ) # closes main panel
-               ) # closes sidebarLayout
-      ),# closes tabPanel for group test retest calculations
-
-      #### METHOD 3 - TE FROM LITERATURE ####
-      tabPanel("Typical error from a literature derived coefficient of variation",
-               
-            h3("Typical Error from literature data"),
-            p("This component will calculate typical error from coefficient of variation data from literature or other sources."),
-            
-            sidebarLayout(
-              sidebarPanel(
-                numericInput(inputId = "obs_score", label = "Obs Score", value = 0),
-                numericInput(inputId = "cov", label = "Enter CoV", value = 0),
-                numericInput(inputId = "lit_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
-                actionButton(inputId = "update_cov_TE", label = "Calculate TE")
-              ),
-            
             mainPanel(
               h3("Results"),
-              tableOutput(outputId = "cov_TE_table")
-            ) # close main panel for CoV
+              p("The table below shows the mean for each individual over all tests and the typical error estimated for each individual."),
+              p("Two confidence values are shown for the TE. The moderated confidence interval takes account of the number of tests carried out on each individual whilst the unmoderated confidence interval is wider because it does not accont for the extra data collected for each individual through the repeated tests."),
+              p("The data are shown on a plot below the table."),
+              tableOutput(outputId = "indiv_TE_table"),
+              downloadButton("downloadData", "Download Table"),
+                plotlyOutput(outputId = "indiv_TE_plot", width="50%", height="75%")
+            ) # close mainPanel
           ) # close sidebarLayout
-        ) # close CoV tabPanel
+        ), # close tabPanel
+      
+  #### 2 - GROUP TEST RETEST DATA METHOD #### 
+    tabPanel("Typical Error from group test retest data",
+               
+      h3("Typical Error from Group Test-Retest Data"),
+      p("This component will calculate typical error of a procedure based on group test-retest data."),
+      p("The input should be a comma-separated values file (csv) of test (col 1) and retest (col 2) data."),
+        sidebarLayout(
+          sidebarPanel(
+            fileInput(inputId = "TE_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+            selectInput(inputId = "test", label = "Variable 1", choices = ""),
+            selectInput(inputId = "retest", label = "Variable 2", choices = ""),
+            numericInput(inputId = "te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+                   
+            actionButton(inputId = "updateTE", label = "Calculate TE")
+          ), # close sidebarPanel
+                 
+          mainPanel(
+            h3("Results"),
+            tableOutput(outputId="TE_table"),
+            plotlyOutput(outputId = "TE_plot")
+          ) # closes main panel
+        ) # closes sidebarLayout
+      ),# closes tabPanel for group test retest calculations
+
+  #### 3 - TE FROM LITERATURE ####
+      tabPanel("Typical error from a literature derived coefficient of variation",
+               
+        h3("Typical Error from literature data"),
+        p("This component will calculate typical error from coefficient of variation data from literature or other sources."),
+            
+        sidebarLayout(
+          sidebarPanel(
+            numericInput(inputId = "obs_score", label = "Obs Score", value = 0),
+            numericInput(inputId = "cov", label = "Enter CoV", value = 0),
+            numericInput(inputId = "lit_te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+            actionButton(inputId = "update_cov_TE", label = "Calculate TE")
+          ),
+            
+          mainPanel(
+            h3("Results"),
+            tableOutput(outputId = "cov_TE_table")
+          ) # close main panel for CoV
+        ) # close sidebarLayout
+      ) # close CoV tabPanel
   ), # close navbarMenu
+  
+  
   
   #### CHANGE SCORE COMPONENTS ####
   
   navbarMenu("Change Scores",
   
-    tabPanel("Typical Error individual intervention data",
+  #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
+  tabPanel("CI for Individual Change Score",
            
-           h3("Typical Error for Individual Change Score"),
-           p("This component will calculate a confidence interval for a change over an intervention for a single individual."),
-           sidebarLayout(
-             sidebarPanel(
-               numericInput(inputId = "pre", label = "Pre Score", value = 0),
-               numericInput(inputId = "post", label = "Post Score", value = 0),
-               numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
-               numericInput(inputId = "indiv_cs_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+    h3("Individual Change Score CI"),
+      sidebarLayout(
+        sidebarPanel(
                
-               actionButton(inputId = "update_indiv_CS", label = "Calculate")), # close sidebarPanel
+          numericInput(inputId = "pre", label = "Pre Score", value = 0),
+          numericInput(inputId = "post", label = "Post Score", value = 0),
+          numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
+          numericInput(inputId = "ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
+               
+          actionButton(inputId = "update_indiv_CS", label = "Calculate")
+        ), 
              
-             mainPanel(
-               h3("Results"),
-               tableOutput(outputId="indiv_CS_table"),
-               plotlyOutput(outputId = "indiv_CS_plot")) # closes main panel
-           ), # closes sidebarLayout
-           
-  ), # closes tabPanel for single indiv change scores
+        mainPanel(
+               
+          h3("Results"),
+          tableOutput(outputId="indiv_CS_table"),
+          plotlyOutput(outputId = "indiv_CS_plot")
+               
+        ) 
+      )  
+    ),
   
-  tabPanel("Typical Error for individuals in a group",
-           
-           h3("Typical Error for Several Individuals Change Scores"),
-           p("This component will calculate a confidence interval for a change over an intervention for a group of individuals."),
-           sidebarLayout(
-             sidebarPanel(
-               fileInput(inputId = "test_results", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-               selectInput(inputId = "pre", label = "Pre Scores", choices = ""),
-               selectInput(inputId = "post", label = "Post Scores", choices = ""),
-               numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
-               numericInput(inputId = "cs_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
-               
-               actionButton(inputId = "update_indiv_CS", label = "Calculate")), # close sidebarPanel
-             
-             mainPanel(
-               h3("Results"),
-               tableOutput(outputId="group_CS_table"),
-               plotlyOutput(outputId = "group_CS_plot")) # closes main panel
-              ) # closes sidebarLayout
-             ) # closes tab panel - change score for group of individuals
-           ) # closes navbarMenu
-
-  #### PROP RESPONSE COMPONENTS ###
-
-) # closes navbarPage
+  tabPanel("CI for Several Individual Change Scores"),
+  
+  tabPanel("Smallest Worthwhile Change")
+  )
+)
 
 #### END UI PART #### 
 
-# Define server logic required to draw a histogram
+# SERVER LOGIC ####
+
 server <- function(input, output, session) {
   
   # INDIV TE ###############
@@ -206,6 +191,8 @@ server <- function(input, output, session) {
     }) # closes observeEvent
 
   
+    
+    
   # TEST-RETEST TE #####################
   # get data
   TE_reactive <- reactive({
@@ -231,7 +218,7 @@ server <- function(input, output, session) {
       var3 <- input$te_ci
       
       # dat <- data.frame(var1 = test, var2 = retest)
-      TEResult <- te(t1 = var1, t2 = var2, ci=var3)
+      TEResult <- TE(t1 = var1, t2 = var2, ci=var3)
       
       # Table
       output$TE_table <- renderTable(TEResult, rownames = TRUE)
@@ -249,6 +236,9 @@ server <- function(input, output, session) {
   }) # close observe event
   
   
+  
+  
+  
   # COV TE ####
   
   # on update button
@@ -264,30 +254,70 @@ server <- function(input, output, session) {
   # INDIVIDUAL CHANGE SCORES ###
   
   
-  # INDIV CHANGE SCORES ###############
-  # indiv_cs_reactive <- reactive({
-    # on update button
+  
+  # INDIV CHANGE SCORES ####
     observeEvent(input$update_indiv_CS, {
       
+      # create dataframe to display
       pre <- input$pre
       post <- input$post
       te <- input$te
-      ci <- input$indiv_cs_ci
-    
-      indiv_cs_data <- indiv_cs(pre = pre, post = post, te = te, ci = ci)
-  
+      ci <- input$ci
+      
+      indiv_cs_data <- cs_ci(pre = pre, post = post, te = te, ci = ci)
       output$indiv_CS_table <- renderTable(indiv_cs_data)
-    
+
       # create plot
       ci_val <- ci * 100
       ax_lab <- paste("Mean Difference +/- ", ci_val, "% CI", sep = "")
-      
-      indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower Change CI Limit`, ymax=`Upper Change CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank()) 
+
+      indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank())
      indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + coord_flip()
-    
+
      output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
+   }) # close observe event
+  
+  
+  
+  # GROUP OF INDIV CHANGE SCORES ####
+  # get the group data
+  CS_reactive <- reactive({
+    inFile <- input$CS_data
+    if (is.null(inFile))
+      return(NULL)
+    read.csv(inFile$datapath)
+  })
+  
+  # get pre & post scores
+  observe({
+    updateSelectInput(session, "id", choices = names(CS_reactive()))
+    updateSelectInput(session, "pre", choices = names(CS_reactive()))
+    updateSelectInput(session, "post", choices = names(CS_reactive()))
+  })
+  
+  # on update button
+  observeEvent(input$update_group_CS, {
+    if(!is.null(input$CS_data)){
+      
+      df <- read.csv(input$CS_data$datapath, header = TRUE, sep = ",")
+      ids <- input$id
+      var1 <- df[, which(colnames(df) == input$pre)]
+      var2 <- df[, which(colnames(df) == input$post)]
+      var3 <- input$TE
+      var4 <- input$cs_ci
+      
+      CSResult <- cs_ci(pre = var1, post = var2, te=var3, ci = var4)
+      # CSResult <- cbind(ids, CSResult) # add ids
+      # colnames(CSResult)[1] <- 'ID'
+      # Table for output
+      output$group_CS_table <- renderTable(CSResult)
+      
+      # Plot
+      group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ID, y=`Change`, ymin=`Lower Change CI Limit`, ymax=`Upper Change CI Limit`), alpha=0.2, size=1) + scale_x_discrete(limits = CSResult$ID)
+      output$group_CS_plot <- renderPlotly(group_CS_plot)
+    } # closes if statement
   }) # close observe event
-  # }) # close reactive  
+  
 }
 # Run the application 
 shinyApp(ui = ui, server = server)
