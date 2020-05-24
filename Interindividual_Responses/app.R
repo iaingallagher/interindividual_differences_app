@@ -111,35 +111,60 @@ ui <- navbarPage(
   #### CHANGE SCORE COMPONENTS ####
   
   navbarMenu("Change Scores",
-  
-  #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
-  tabPanel("CI for Individual Change Score",
-           
-    h3("Individual Change Score CI"),
-      sidebarLayout(
-        sidebarPanel(
-               
-          numericInput(inputId = "pre", label = "Pre Score", value = 0),
-          numericInput(inputId = "post", label = "Post Score", value = 0),
-          numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
-          numericInput(inputId = "ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
-               
-          actionButton(inputId = "update_indiv_CS", label = "Calculate")
-        ), 
              
-        mainPanel(
-               
-          h3("Results"),
-          tableOutput(outputId="indiv_CS_table"),
-          plotlyOutput(outputId = "indiv_CS_plot")
-               
-        ) 
-      )  
-    ),
-  
-  tabPanel("CI for Several Individual Change Scores"),
-  
-  tabPanel("Smallest Worthwhile Change")
+             #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
+             tabPanel("CI for Individual Change Score",
+                      
+                      h3("Individual Change Score CI"),
+                      sidebarLayout(
+                        sidebarPanel(
+                          
+                          numericInput(inputId = "pre", label = "Pre Score", value = 0),
+                          numericInput(inputId = "post", label = "Post Score", value = 0),
+                          numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
+                          numericInput(inputId = "ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
+                          
+                          actionButton(inputId = "update_indiv_CS", label = "Calculate")
+                        ), 
+                        
+                        mainPanel(
+                          
+                          h3("Results"),
+                          tableOutput(outputId="indiv_CS_table"),
+                          plotlyOutput(outputId = "indiv_CS_plot")
+                          
+                        ) 
+                      )  
+             ),
+             
+             
+             #### 2 - GROUP OF CHANGE SCORES ####
+             tabPanel("CI for Several Individual Change Scores",
+                      sidebarLayout(
+                        sidebarPanel(
+                          # read in file & enter vars, te & ci
+                          fileInput(inputId = "CS_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+                          
+                          selectInput(input = "id", label = "Indiv ID", choices = ""),
+                          selectInput(inputId = "multiple_pre", label = "Pre", choices = ""),
+                          selectInput(inputId = "multiple_post", label = "Post", choices = ""),
+                          numericInput(inputId = "multiple_te", label="TE for Procedure", value=0),
+                          numericInput(inputId = "multiple_ci", label="Desired CI", value=0.95, min=0.5,max=1, step=0.05),
+                          
+                          actionButton(inputId = "update_group_CS", label = "Calculate")
+                        ),
+                        
+                        # display table of change ci's & plot
+                        mainPanel(
+                          h3("Results"),
+                          tableOutput(outputId="group_CS_table"),
+                          plotlyOutput(outputId = "group_CS_plot")
+                        )
+                      )
+             ),
+             
+             #### 3 - SMALLEST WORTHWHILE CHANGE ####
+             tabPanel("Smallest Worthwhile Change") # place holder
   )
 )
 
@@ -266,20 +291,23 @@ server <- function(input, output, session) {
       
       indiv_cs_data <- cs_ci(pre = pre, post = post, te = te, ci = ci)
       output$indiv_CS_table <- renderTable(indiv_cs_data)
-
+     
       # create plot
       ci_val <- ci * 100
       ax_lab <- paste("Mean Difference +/- ", ci_val, "% CI", sep = "")
-
+     
       indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank())
-     indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + coord_flip()
-
-     output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
+      indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + coord_flip()
+     
+      output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
    }) # close observe event
   
   
   
-  # GROUP OF INDIV CHANGE SCORES ####
+
+  
+  # GROUP OF CHANGE SCORES ####
+  
   # get the group data
   CS_reactive <- reactive({
     inFile <- input$CS_data
@@ -291,8 +319,8 @@ server <- function(input, output, session) {
   # get pre & post scores
   observe({
     updateSelectInput(session, "id", choices = names(CS_reactive()))
-    updateSelectInput(session, "pre", choices = names(CS_reactive()))
-    updateSelectInput(session, "post", choices = names(CS_reactive()))
+    updateSelectInput(session, "multiple_pre", choices = names(CS_reactive()))
+    updateSelectInput(session, "multiple_post", choices = names(CS_reactive()))
   })
   
   # on update button
@@ -300,24 +328,27 @@ server <- function(input, output, session) {
     if(!is.null(input$CS_data)){
       
       df <- read.csv(input$CS_data$datapath, header = TRUE, sep = ",")
-      ids <- input$id
-      var1 <- df[, which(colnames(df) == input$pre)]
-      var2 <- df[, which(colnames(df) == input$post)]
-      var3 <- input$TE
-      var4 <- input$cs_ci
+      ids <- df[, which(colnames(df) == input$id)]
+      ids <- paste('Subject:', ids, sep = ' ')
+      pre <- df[, which(colnames(df) == input$multiple_pre)]
+      post <- df[, which(colnames(df) == input$multiple_post)]
+      te <- input$multiple_te
+      ci <- input$multiple_ci
       
-      CSResult <- cs_ci(pre = var1, post = var2, te=var3, ci = var4)
-      # CSResult <- cbind(ids, CSResult) # add ids
-      # colnames(CSResult)[1] <- 'ID'
+      CSResult <- cs_ci(pre, post, te, ci)
+      CSResult <- cbind(ids, CSResult) # add subj ids
+      colnames(CSResult)[1] <- 'ID'
       # Table for output
       output$group_CS_table <- renderTable(CSResult)
       
       # Plot
-      group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ID, y=`Change`, ymin=`Lower Change CI Limit`, ymax=`Upper Change CI Limit`), alpha=0.2, size=1) + scale_x_discrete(limits = CSResult$ID)
+      group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ids, y=`Change`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), size=2, colour = "chocolate2") + scale_x_discrete(limits = CSResult$ID) + coord_flip()
       output$group_CS_plot <- renderPlotly(group_CS_plot)
+      
     } # closes if statement
   }) # close observe event
   
-}
+} # close server block
+
 # Run the application 
 shinyApp(ui = ui, server = server)
