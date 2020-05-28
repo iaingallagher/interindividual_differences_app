@@ -112,7 +112,7 @@ ui <- navbarPage(
   
   navbarMenu("Change Scores",
              
-             #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
+    #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
              tabPanel("CI for Individual Change Score",
                       
                       h3("Individual Change Score CI"),
@@ -139,7 +139,7 @@ ui <- navbarPage(
              ),
              
              
-             #### 2 - GROUP OF CHANGE SCORES ####
+    #### 2 - GROUP OF CHANGE SCORES ####
              tabPanel("CI for Several Individual Change Scores",
                       sidebarLayout(
                         sidebarPanel(
@@ -166,8 +166,29 @@ ui <- navbarPage(
                       )
              ),
              
-             #### 3 - SMALLEST WORTHWHILE CHANGE ####
-             tabPanel("Smallest Worthwhile Change") # place holder
+    #### 3 - SMALLEST WORTHWHILE CHANGE ####
+             tabPanel("Smallest Worthwhile Change",
+                      
+              sidebarLayout(
+                sidebarPanel(
+                  # read in file & enter vars, te & ci
+                  fileInput(inputId = "SWC_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+                  
+                  selectInput(input = "swc_variable", label = "Select Variable", choices = ""),
+                  numericInput(input = "eff_size", label = "Enter effect size for variable", value = 0),
+                  numericInput(input = "swc_te", label = "Enter TE for procedure", value = 0),
+                  
+                  actionButton(inputId = "calc_swc", label = "Calculate SWC")
+                ),
+                
+                mainPanel(
+                  
+                  h3("Results"),
+                  tableOutput(outputId="SWC_table")
+                )
+              )
+            ) # close tabPanel
+             
   )
 )
 
@@ -388,7 +409,35 @@ server <- function(input, output, session) {
   
   
   # SWC ####
-  # placeholder
+  # get the file path
+  CS_reactive <- reactive({
+    inFile <- input$SWC_data
+    if (is.null(inFile))
+      return(NULL)
+    read.csv(inFile$datapath)
+  })
+  
+  # get variable for SWC calc
+  observe({
+    updateSelectInput(session, "swc_variable", choices = names(CS_reactive()))
+  })
+  
+  # carry out the calculation & return data
+  observeEvent(input$calc_swc, {
+    # get data for calculation
+    df <- read.csv(input$SWC_data$datapath, header = TRUE, sep = ",")
+    input_var <- df[, which(colnames(df) == input$swc_variable)]
+    
+    # calculation & output
+      var_sd <- sd(input_var)
+      eff_size = input$eff_size
+      te <- input$swc_te
+      swc <- (var_sd * eff_size) + te
+               
+      swc_data <- data.frame(`Baseline SD` = var_sd, `Effect Size` = eff_size, `TE` = te, `SWC` = swc)
+      output$SWC_table <- renderTable(swc_data)
+  }
+  )
   
   
 } # close server block
