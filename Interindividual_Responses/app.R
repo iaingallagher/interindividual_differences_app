@@ -149,6 +149,7 @@ ui <- navbarPage(
                           selectInput(inputId = "multiple_pre", label = "Pre", choices = ""),
                           selectInput(inputId = "multiple_post", label = "Post", choices = ""),
                           numericInput(inputId = "multiple_te", label="TE for Procedure", value=0),
+                          numericInput(inputId = "swc", label = "Desired SWC", value = 0),
                           numericInput(inputId = "multiple_ci", label="Desired CI", value=0.95, min=0.5,max=1, step=0.05),
                           
                           actionButton(inputId = "update_group_CS", label = "Calculate")
@@ -158,6 +159,7 @@ ui <- navbarPage(
                         mainPanel(
                           h3("Results"),
                           tableOutput(outputId="group_CS_table"),
+                          downloadButton("downloadData_CS", "Download Table"),
                           plotlyOutput(outputId = "group_CS_plot")
                         )
                       )
@@ -305,7 +307,6 @@ server <- function(input, output, session) {
   
   
 
-  
   # GROUP OF CHANGE SCORES ####
   
   # get the group data
@@ -341,12 +342,26 @@ server <- function(input, output, session) {
       # Table for output
       output$group_CS_table <- renderTable(CSResult)
       
+      # download data
+      output$downloadData_CS <- downloadHandler(
+        filename = "Group_Change_Score_Result.csv",
+        content = function(file){
+          write.csv(CSResult, file, row.names=FALSE) })
+      
+      
       # Plot
-      group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ids, y=`Change`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), size=2, colour = "chocolate2") + scale_x_discrete(limits = CSResult$ID) + coord_flip()
+      group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ids, y=`Change`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), size=2, colour = "chocolate2") # basic plot
+      group_CS_plot <- group_CS_plot + scale_x_discrete(limits = CSResult$ID) # subj labels
+      group_CS_plot <- group_CS_plot + geom_hline(yintercept = input$swc, colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip() # swc and flip axes
       output$group_CS_plot <- renderPlotly(group_CS_plot)
       
     } # closes if statement
   }) # close observe event
+  
+  
+  # SWC ####
+  # placeholder
+  
   
 } # close server block
 
