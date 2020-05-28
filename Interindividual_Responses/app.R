@@ -17,16 +17,11 @@ source("interindividual_response_functions.R")
 ui <- navbarPage(
   
   #### MAIN PAGE ####
-  "Statistics for Sports Science",
-  mainPanel(img(src='swinton_2018.png', align = "left", width=400)),
-  
-  p("Swinton, Paul A., Ben Stephens Hemingway, Bryan Saunders, Bruno Gualano, and Eimear Dolan. 2018. ‘A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription’. Frontiers in Nutrition 5. https://doi.org/10.3389/fnut.2018.00041.
-"),
-  
-  p("Typical error can be calculated from"),
-  p("i) individual test data over many trials, ii) group test retest data or iii) from a coefficient of variation."),  
-  p("The calculations used by this webapp are from Swinton et al (2018) and Swinton et al (MS in prep)."),
-  p("Select the method you would like to use from the menu above."),
+  title = "Statistics for Sports Science",
+  mainPanel(img(src="swinton_2018.png", align = "center", width=400),
+            
+    p("Swinton, Paul A., Ben Stephens Hemingway, Bryan Saunders, Bruno Gualano, and Eimear Dolan. 2018. ‘A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription’. Frontiers in Nutrition 5. https://doi.org/10.3389/fnut.2018.00041.
+")),
   
   #### TYPICAL ERROR COMPONENTS ####
   
@@ -36,13 +31,14 @@ ui <- navbarPage(
       tabPanel("Individual typical error from test retest data",
                
         h3("Typical Error from Individual Test Data"),
-        p("This component will calculate typical error from individual test retest data."),
-        p("The input should be a comma-separated values file (csv). Data for each individual (n>10 tests) should be in columns."),
-        p("The confidence intervals from the individual TE are calculated using the t-distribution irrespective of the number of observations for each individual.s"),
+        
             
           sidebarLayout(
             sidebarPanel(
-              h4("Calculate typical error from individual test retest data."),
+              p("Enter data below to calculate typical error from individual test-retest data."),
+              p("The input data should be comma-delimited with data for each individual (ideally n>10 tests) arranged in columns."),
+              p("The confidence intervals from the individual TE are calculated using the t-distribution irrespective of the number of observations for each individual.s"),
+              
               fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
               numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
               actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
@@ -63,14 +59,13 @@ ui <- navbarPage(
   #### 2 - GROUP TEST RETEST DATA METHOD #### 
     tabPanel("Typical Error from group test retest data",
                
-      h3("Typical Error from Group Test-Retest Data"),
-      p("This component will calculate typical error of a procedure based on group test-retest data."),
-      p("The input should be a comma-separated values file (csv) of test (col 1) and retest (col 2) data."),
+      p("Enter data to calculate typical error from Group Test-Retest Data."),
+      p("The input data should be comma-delimited with test and retest data."),
         sidebarLayout(
           sidebarPanel(
             fileInput(inputId = "TE_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-            selectInput(inputId = "test", label = "Variable 1", choices = ""),
-            selectInput(inputId = "retest", label = "Variable 2", choices = ""),
+            selectInput(inputId = "test", label = "Test", choices = ""),
+            selectInput(inputId = "retest", label = "Retest", choices = ""),
             numericInput(inputId = "te_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
                    
             actionButton(inputId = "updateTE", label = "Calculate TE")
@@ -87,8 +82,8 @@ ui <- navbarPage(
   #### 3 - TE FROM LITERATURE ####
       tabPanel("Typical error from a literature derived coefficient of variation",
                
-        h3("Typical Error from literature data"),
-        p("This component will calculate typical error from coefficient of variation data from literature or other sources."),
+        p("Typical Error for a score using coefficient of variation."),
+        p("Enter values to calculate typical error using coefficient of variation data from literature or other sources."),
             
         sidebarLayout(
           sidebarPanel(
@@ -101,10 +96,11 @@ ui <- navbarPage(
           mainPanel(
             h3("Results"),
             tableOutput(outputId = "cov_TE_table")
-          ) # close main panel for CoV
-        ) # close sidebarLayout
-      ) # close CoV tabPanel
-  ), # close navbarMenu
+          ) 
+        )
+      )
+  ),
+  
   
   
   
@@ -115,9 +111,11 @@ ui <- navbarPage(
     #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
              tabPanel("CI for Individual Change Score",
                       
-                      h3("Individual Change Score CI"),
+                      h3("Individual Change Score with CI"),
                       sidebarLayout(
                         sidebarPanel(
+                          
+                          p("Enter data below to calculate a change score with confidence interval for an individual."),
                           
                           numericInput(inputId = "pre", label = "Pre Score", value = 0),
                           numericInput(inputId = "post", label = "Post Score", value = 0),
@@ -144,6 +142,8 @@ ui <- navbarPage(
                       sidebarLayout(
                         sidebarPanel(
                           # read in file & enter vars, te & ci
+                          p("Enter data below to calculate change scores with CI for a group of individuals."),
+                          p("Data should be comma-delimited and include a subject ID and pre and post measures for analysis."),
                           fileInput(inputId = "CS_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
                           
                           selectInput(input = "id", label = "Indiv ID", choices = ""),
@@ -171,6 +171,10 @@ ui <- navbarPage(
                       
               sidebarLayout(
                 sidebarPanel(
+                  
+                  p("Enter data below to calculate the smallest worthwhile change."),
+                  p("Data should either be a single column for one variable or comma-delimited with baseline measures of variables to choose from."),
+                  
                   # read in file & enter vars, te & ci
                   fileInput(inputId = "SWC_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
                   
@@ -433,7 +437,7 @@ server <- function(input, output, session) {
       eff_size = input$eff_size
       te <- input$swc_te
       swc <- (var_sd * eff_size) + te
-               
+      
       swc_data <- data.frame(`Baseline SD` = var_sd, `Effect Size` = eff_size, `TE` = te, `SWC` = swc)
       output$SWC_table <- renderTable(swc_data)
   }
