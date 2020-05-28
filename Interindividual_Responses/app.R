@@ -294,15 +294,33 @@ server <- function(input, output, session) {
       
       indiv_cs_data <- cs_ci(pre = pre, post = post, te = te, ci = ci)
       output$indiv_CS_table <- renderTable(indiv_cs_data)
+      
+      # if swc is zero plot a line at zero
+      if(input$indiv_swc == 0){
      
       # create plot
       ci_val <- ci * 100
       ax_lab <- paste("Mean Difference +/- ", ci_val, "% CI", sep = "")
      
       indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank())
-      indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + geom_hline(yintercept = input$indiv_swc, colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip()
+      indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + geom_hline(yintercept = 0, colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip()
      
       output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
+      }
+      
+      # if swc != 0 plot a line at swc & zero
+      else{
+        
+        # create plot
+        ci_val <- ci * 100
+        ax_lab <- paste("Mean Difference +/- ", ci_val, "% CI", sep = "")
+        
+        indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank())
+        indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + geom_hline(yintercept = c(0,input$indiv_swc), colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip()
+        
+        output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
+        
+      }
    }) # close observe event
   
   
@@ -351,12 +369,21 @@ server <- function(input, output, session) {
       
       
       # Plot
-      group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ids, y=`Change`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), size=2, colour = "chocolate2") # basic plot
-      group_CS_plot <- group_CS_plot + scale_x_discrete(limits = CSResult$ID) # subj labels
-      group_CS_plot <- group_CS_plot + geom_hline(yintercept = input$swc, colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip() # swc and flip axes
-      output$group_CS_plot <- renderPlotly(group_CS_plot)
+      if(input$swc == 0){
+        group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ids, y=`Change`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), size=2, colour = "chocolate2") # basic plot
+        group_CS_plot <- group_CS_plot + scale_x_discrete(limits = CSResult$ID) # subj labels
+        group_CS_plot <- group_CS_plot + geom_hline(yintercept = 0, colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip() # swc and flip axes
+        output$group_CS_plot <- renderPlotly(group_CS_plot)
+      }
       
-    } # closes if statement
+      else{
+        group_CS_plot <- ggplot() + geom_pointrange(data = CSResult, aes(x = ids, y=`Change`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), size=2, colour = "chocolate2") # basic plot
+        group_CS_plot <- group_CS_plot + scale_x_discrete(limits = CSResult$ID) # subj labels
+        group_CS_plot <- group_CS_plot + geom_hline(yintercept = c(0, input$swc), colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip() # swc and flip axes
+        output$group_CS_plot <- renderPlotly(group_CS_plot)
+      }
+      
+    } # closes if statement for data
   }) # close observe event
   
   
