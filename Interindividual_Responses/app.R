@@ -122,6 +122,7 @@ ui <- navbarPage(
                           numericInput(inputId = "pre", label = "Pre Score", value = 0),
                           numericInput(inputId = "post", label = "Post Score", value = 0),
                           numericInput(inputId = "te", label = "Typical Error for Procedure", value = 0),
+                          numericInput(inputId = "indiv_swc", label = "Desired SWC", value = 0),
                           numericInput(inputId = "ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
                           
                           actionButton(inputId = "update_indiv_CS", label = "Calculate")
@@ -299,7 +300,7 @@ server <- function(input, output, session) {
       ax_lab <- paste("Mean Difference +/- ", ci_val, "% CI", sep = "")
      
       indiv_cs_plot <- ggplot() + geom_pointrange(data = indiv_cs_data, aes(x = 1, y = Change, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), colour='chocolate', size=1.2) + theme(axis.ticks = element_blank(), axis.text.y = element_blank())
-      indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + coord_flip()
+      indiv_cs_plot <- indiv_cs_plot + labs (x = "", y = ax_lab) + geom_hline(yintercept = input$indiv_swc, colour = "cadetblue", size = 1, linetype = "dashed", alpha = 0.5) + coord_flip()
      
       output$indiv_CS_plot <- renderPlotly(indiv_cs_plot)
    }) # close observe event
