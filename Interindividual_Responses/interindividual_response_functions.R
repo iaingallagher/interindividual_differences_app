@@ -156,9 +156,13 @@ int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
   
   # calculate intervention variation
   intervention_sd <- sqrt(var_int_cs - var_ctrl_cs) # calc intervention sd
+  # cal mean diff for int group
+  int_mean_diff <- mean(int_post_data - int_pre_data)
+  # return df
+  data_out <- data.frame(`Intervention Mean Diff` = int_mean_diff, `Intervention SD` = intervention_sd)
   
   # return(intervention_sd)
-    return(intervention_sd)
+  return(data_out)
 }
 
 # 3.2 - Proportion of response
@@ -166,16 +170,18 @@ int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
 # true change follows normal with u = obs change and sd  = intervention response sd (see 3.1)
 # prop response is area of this normal dist beyond swc
 
-prop_resp <- function(pre, post, int_std, swc, dir){
-  # mean change
-  mn_change <- mean(post - pre)
-  # define prop resp
-  if (dir == 'Above'){
-    prop <- pnorm(swc, mn_change, int_std, lower.tail = FALSE) # prop above
-  }
+prop_resp <- function(int_mn_diff, int_sd, eff_sz, dir){
   
+  # swc
+  swc<- int_sd * eff_sz
+  
+  # define prop resp above swc
+  if (dir == 'Above'){
+    prop <- pnorm(swc, mn_change, int_std, lower.tail = FALSE)
+  }
+  # define prop resp below swc
   else{
-    prop <- pnorm(swc, mn_change, int_std) # prop below
+    prop <- pnorm(swc, mn_change, int_std)
   }
   # values df
   res_df <- c('Mean Change' = mn_change, "Int SD" = int_std, "Prop Response" = prop)

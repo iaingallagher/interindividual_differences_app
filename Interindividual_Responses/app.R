@@ -202,7 +202,6 @@ ui <- navbarPage(
          
          sidebarLayout(
            sidebarPanel(
-             
              p("Enter data below to calculate the varibility due to an intervention."),
              p("Data should be comma separated and in long format."),
              
@@ -225,7 +224,21 @@ ui <- navbarPage(
              tableOutput(outputId="Int_Var_data")
            )
          )
+        ),
+      
+      tabPanel("Responder Proportion",
+        sidebarLayout(
+          sidebarPanel(
+            p("Enter data below to calculate the proportion of responders"),
+            
+          ),
+          
+          mainPanel(
+            
+          )
         )
+               
+      )
     )
 )
     
@@ -501,11 +514,30 @@ server <- function(input, output, session) {
     df <- read.csv(input$int_var_data$datapath, header = TRUE, sep = ",")
     
     # calculation
-    intervention_sd <- int_sd(df, input$pre_variable, input$post_variable, input$grouping_variable, input$ctrl_ind, input$int_ind)
-    
-    int_data <- data.frame(`Intervention SD` = intervention_sd)
+    int_data <- int_sd(df, input$pre_variable, input$post_variable, input$grouping_variable, input$ctrl_ind, input$int_ind)
+    # render output
     output$Int_Var_data <- renderTable(int_data)
+    
+    # plot the intervention score normal distribution
+    
   })
+  
+  # RESPONDER PROPORTION ####
+  # get the file path
+  CS_reactive <- reactive({
+    inFile <- input$XXX
+    if (is.null(inFile))
+      return(NULL)
+    read.csv(inFile$datapath)
+  })
+  
+  # get variables
+  observe({
+    updateSelectInput(session, "XXX", choices = names(CS_reactive()))
+    updateSelectInput(session, "XXX", choices = names(CS_reactive()))
+    updateSelectInput(session, "XXX", choices = names(CS_reactive()))
+  })
+  
   
   # await user input
   # carry out the calculation & return data
