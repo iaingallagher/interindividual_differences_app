@@ -64,11 +64,11 @@ indiv_te_t <- function(df, ci){
 }
 
 
-# 1.2 SIMPLE TEST-RETEST DIFFS #####
+# 1.2 SIMPLE TEST-RETEST DIFFS ####
 
 # input two vectors representing test data 1 and test data 2
 # te calculated as per Swinton 2018 (sd(diffs)/sqrt(2))
-te <- function(t1, t2, ci){
+TE <- function(t1, t2, ci){
   diffs <- t1-t2
   mean_diff <- mean(diffs)
   sd_diff <- sd(diffs)
@@ -106,51 +106,80 @@ cov_te <- function(cv, os, ci){
 }
 
 
+
 # 2 - CHANGE SCORES ####
 
-# 2.1 - individual CI for change scores
+# 2.1 - CI for change scores
 # input two vectors representing pre & post intervention values for number of indivs
 # est te & te ci
 
-# Individual te
+# Calculate change score CI's accounting for TE
 # output df with change score value and ci limits
-indiv_cs <- function(pre, post, te, ci){
-  indiv_change_score <- (post-pre) # vector of change scores
-  indiv_change_score_sd <- te*sqrt(2) # vector of change score sds
+cs_ci <- function(pre, post, te, ci){
+  change_score <- (post-pre) # vector of change scores
+  change_sd <- te*sqrt(2) # vector of change score sds
   
   # use t-dist for CIs
-  deg_free <- length(indiv_change_score)
+  deg_free <- length(change_score)
   # calc ci for change scores
   # ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for t dist
   ci_lim <- qnorm((1-ci)/2, lower.tail=F) # for norm dist
-  indiv_cs_lower <- indiv_change_score - (indiv_change_score_sd*ci_lim)
-  indiv_cs_upper <- indiv_change_score + (indiv_change_score_sd*ci_lim)
+  cs_lower <- change_score - (change_sd*ci_lim)
+  cs_upper <- change_score + (change_sd*ci_lim)
   
-  output_df <- data.frame(indiv_change = indiv_change_score, indiv_cs_sd = indiv_change_score_sd, te = te, ci_lo = indiv_cs_lower , ci_hi = indiv_cs_upper)
-  colnames(output_df) <- c("Change", "Change SD", "TE", "Lower Change CI Limit", "Upper Change CI Limit")
+  output_df <- data.frame(change = change_score, change_sd = change_sd, te = te, ci_lo = cs_lower , ci_hi = cs_upper)
+  colnames(output_df) <- c("Change", "Change SD", "TE", "Lower CI Limit", "Upper CI Limit")
   
   return(output_df)
 }
 
-# 2.2 - group CI for change scores - NEEDS WORK, MULTIPLE OBS FOR EACH INDIV ATM
-# input df with ID, pre & post cols; n > 1 individual
-# est te & te ci
-# output mean diff & TE bounds
 
-group_cs <- function(pre, post, te, ci){
-  obs_diff <- post-pre
-  mean_diff <- mean(obs_diff)
-  sd_diff <- sd(obs_diff)
-  typical_error <- sd(post-pre)/sqrt(2)
+# 3 - PROPORTION OF RESPONSE ####
+
+# 3.1 - Variability due to intervention ####
+# input two vectors representing change score in intervention group & change score in control group
+# estimate intervention response sd
+
+int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
+  # get group data
+  # https://stackoverflow.com/questions/17075529/subset-based-on-variable-column-name
+  # mad syntax - seems overly complex to pass an unknown column
+  ctrl_pre_data <- df[ df[[grp_var]] == ctrl_ind , pre]
+  ctrl_post_data <- df[ df[[grp_var]] == ctrl_ind , post]
+  ctrl_diff <- ctrl_post_data - ctrl_pre_data
+  var_ctrl_cs <- var(ctrl_diff)
   
-  # calc ci with t-dist
-  deg_free <- length(obs_diff) # get df from number of obs
-  ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for normal dist
-  te_lower <- mean_diff - (typical_error*ci_lim)
-  te_upper <- mean_diff + (typical_error*ci_lim)
+  int_pre_data <- df[ df[[grp_var]] == int_ind , pre]
+  int_post_data <- df[ df[[grp_var]] == int_ind , post]
+  int_diff <- int_post_data - int_pre_data
+  var_int_cs <- var(int_diff)
   
-  te_return_df <- data.frame("Mean Difference"=mean_diff, "SD Differences"=sd_diff, "Typical Error"=typical_error, "Obs Score CI lower"=te_lower, "Obs Score CI Upper"=te_upper)
+  # calculate intervention variation
+  intervention_sd <- sqrt(var_int_cs - var_ctrl_cs) # calc intervention sd
   
-  return(te_return_df)
+  # return(intervention_sd)
+    return(intervention_sd)
 }
 
+# 3.2 - Proportion of response
+# input df with pre scores column, post scores column; numeric intervention sd & swc
+# true change follows normal with u = obs change and sd  = intervention response sd (see 3.1)
+# prop response is area of this normal dist beyond swc
+
+prop_resp <- function(pre, post, int_std, swc, dir){
+  # mean change
+  mn_change <- mean(post - pre)
+  # define prop resp
+  if (dir == 'Above'){
+    prop <- pnorm(swc, mn_change, int_std, lower.tail = FALSE) # prop above
+  }
+  
+  else{
+    prop <- pnorm(swc, mn_change, int_std) # prop below
+  }
+  # values df
+  res_df <- c('Mean Change' = mn_change, "Int SD" = int_std, "Prop Response" = prop)
+  
+  return(res_df)
+
+}

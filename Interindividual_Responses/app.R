@@ -192,10 +192,43 @@ ui <- navbarPage(
                 )
               )
             ) # close tabPanel
-             
-  )
-)
+  ),
+            
 
+
+  #### RESPONDER PROPORTION COMPONENTS ####
+    navbarMenu("Proportion of Responders",  
+      tabPanel("Intervention standard deviation",
+         
+         sidebarLayout(
+           sidebarPanel(
+             
+             p("Enter data below to calculate the varibility due to an intervention."),
+             p("Data should be comma separated and in long format."),
+             
+             # read in file & enter vars, te & ci
+             fileInput(inputId = "int_var_data", label = "Choose a file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+             
+             selectInput(input = "pre_variable", label = "Select pre intervention measures", choices = ""),
+             selectInput(input = "post_variable", label = "Select post intervention measures", choices = ""),
+             selectInput(input = "grouping_variable", label = "Select grouping variable", choices = ""),
+             textInput(input = "ctrl_ind", label = "Control group label"),
+             textInput(input = "int_ind", label = "Intervention group label"),
+             
+             actionButton(inputId = "calc_var", label = "Calculate")
+           ),
+           
+           mainPanel(
+             
+             h3("Results"),
+             p("Variability due to intervention"),
+             tableOutput(outputId="Int_Var_data")
+           )
+         )
+        )
+    )
+)
+    
 #### END UI PART #### 
 
 # SERVER LOGIC ####
@@ -443,6 +476,41 @@ server <- function(input, output, session) {
   }
   )
   
+  
+  
+  
+  # VARIABILITY DUE TO INTERVENTION ####
+  # get the file path
+  CS_reactive <- reactive({
+    inFile <- input$int_var_data
+    if (is.null(inFile))
+      return(NULL)
+    read.csv(inFile$datapath)
+  })
+  
+  # get variables
+  observe({
+    updateSelectInput(session, "pre_variable", choices = names(CS_reactive()))
+    updateSelectInput(session, "post_variable", choices = names(CS_reactive()))
+    updateSelectInput(session, "grouping_variable", choices = names(CS_reactive()))
+  })
+  
+  # carry out the calculation & return data
+  observeEvent(input$calc_var, {
+    # get data for calculation
+    df <- read.csv(input$int_var_data$datapath, header = TRUE, sep = ",")
+    
+    # calculation
+    intervention_sd <- int_sd(df, input$pre_variable, input$post_variable, input$grouping_variable, input$ctrl_ind, input$int_ind)
+    
+    int_data <- data.frame(`Intervention SD` = intervention_sd)
+    output$Int_Var_data <- renderTable(int_data)
+  })
+  
+  # await user input
+  # carry out the calculation & return data
+
+
   
 } # close server block
 
