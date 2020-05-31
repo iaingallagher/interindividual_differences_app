@@ -170,22 +170,20 @@ int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
 # true change follows normal with u = obs change and sd  = intervention response sd (see 3.1)
 # prop response is area of this normal dist beyond swc
 
-prop_resp <- function(int_mn_diff, int_sd, eff_sz, dir){
+prop_resp <- function(mn, sd, eff_sz, direction){
   
-  # swc
-  swc<- int_sd * eff_sz
+  # calculate prop resp for normal dist
+  swc <- sd * eff_sz
   
-  # define prop resp above swc
-  if (dir == 'Above'){
-    prop <- pnorm(swc, mn_change, int_std, lower.tail = FALSE)
+  # calculate prop if above
+  if (direction == "Above"){
+    prop_responders <- pnorm(swc, mn, sd, lower.tail = FALSE)
   }
-  # define prop resp below swc
   else{
-    prop <- pnorm(swc, mn_change, int_std)
+    prop_responders <- pnorm(swc, mn, sd, lower.tail = FALSE)
   }
-  # values df
-  res_df <- c('Mean Change' = mn_change, "Int SD" = int_std, "Prop Response" = prop)
   
-  return(res_df)
-
+  # gather outputs
+  ret_df <- data.frame(mn, sd, prop_responders)
+  return(ret_df)
 }
