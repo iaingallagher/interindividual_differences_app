@@ -180,7 +180,7 @@ prop_resp <- function(mn, sd, eff_sz, direction){
     prop_responders <- pnorm(swc, mn, sd, lower.tail = FALSE)
   }
   else{
-    prop_responders <- pnorm(swc, mn, sd, lower.tail = FALSE)
+    prop_responders <- pnorm(swc, mn, sd)
   }
   
   # gather outputs
