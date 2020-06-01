@@ -104,11 +104,13 @@ ui <- navbarPage(
   
   
   
+  
+  
   #### CHANGE SCORE COMPONENTS ####
   
   navbarMenu("Change Scores",
              
-    #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
+  #### 1 - SINGLE INDIVIDUAL CHANGE SCORE ####
              tabPanel("CI for Individual Change Score",
                       
                       h3("Individual Change Score with CI"),
@@ -137,7 +139,7 @@ ui <- navbarPage(
              ),
              
              
-    #### 2 - GROUP OF CHANGE SCORES ####
+  #### 2 - GROUP OF CHANGE SCORES ####
              tabPanel("CI for Several Individual Change Scores",
                       sidebarLayout(
                         sidebarPanel(
@@ -166,7 +168,7 @@ ui <- navbarPage(
                       )
              ),
              
-    #### 3 - SMALLEST WORTHWHILE CHANGE ####
+  #### 3 - SMALLEST WORTHWHILE CHANGE ####
              tabPanel("Smallest Worthwhile Change",
                       
               sidebarLayout(
@@ -196,50 +198,68 @@ ui <- navbarPage(
             
 
 
+  
+  
   #### RESPONDER PROPORTION COMPONENTS ####
-    navbarMenu("Proportion of Responders",  
-      tabPanel("Intervention standard deviation",
+  
+  navbarMenu("Proportion of Responders",  
+  #### 1 - INTERVENTION SD ####           
+    tabPanel("Intervention standard deviation",
          
-         sidebarLayout(
-           sidebarPanel(
-             p("Enter data below to calculate the varibility due to an intervention."),
-             p("Data should be comma separated and in long format."),
+      sidebarLayout(
+        sidebarPanel(
+          p("Enter data below to calculate the varibility due to an intervention."),
+          p("Data should be comma separated and in long format."),
              
-             # read in file & enter vars, te & ci
-             fileInput(inputId = "int_var_data", label = "Choose a file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+          # read in file & enter vars
+          fileInput(inputId = "int_var_data", label = "Choose a file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
              
-             selectInput(input = "pre_variable", label = "Select pre intervention measures", choices = ""),
-             selectInput(input = "post_variable", label = "Select post intervention measures", choices = ""),
-             selectInput(input = "grouping_variable", label = "Select grouping variable", choices = ""),
-             textInput(input = "ctrl_ind", label = "Control group label"),
-             textInput(input = "int_ind", label = "Intervention group label"),
+          selectInput(input = "pre_variable", label = "Select pre intervention measures", choices = NULL),
+          selectInput(input = "post_variable", label = "Select post intervention measures", choices = NULL),
+          selectInput(input = "grouping_variable", label = "Select grouping variable", choices = NULL),
+          textInput(input = "ctrl_ind", label = "Control group label"), 
+          textInput(input = "int_ind", label = "Intervention group label"),
              
-             actionButton(inputId = "calc_var", label = "Calculate")
-           ),
-           
-           mainPanel(
-             
-             h3("Results"),
-             p("Variability due to intervention"),
-             tableOutput(outputId="Int_Var_data")
-           )
-         )
+          actionButton(inputId = "calc_var", label = "Calculate")
         ),
-      
-      tabPanel("Responder Proportion",
-        sidebarLayout(
-          sidebarPanel(
-            p("Enter data below to calculate the proportion of responders"),
-            
-          ),
-          
-          mainPanel(
-            
-          )
+           
+        mainPanel(
+             
+          h3("Results"),
+          p("Variability due to intervention"),
+          tableOutput(outputId="Int_Var_data")
         )
-               
+      )
+    ),
+    
+  #### 2 - RESPONDER PROPORTION ####
+    tabPanel("Responder Proportion",
+      sidebarLayout(
+        sidebarPanel(
+          p("Enter data below to calculate the proportion of responders."),
+          
+          # get required vars; prob from INTERVENTION SD above
+          numericInput(input = "int_cs_mn", label = "Enter mean change score for intervention", value = 0, step = 0.1),
+          numericInput(input = "int_sd", label = "Enter standard deviation due to intervention", value = 0, step = 0.1),
+          numericInput(input = "prop_swc_cutoff", label = "Enter desired effect size for SWC calculation", value = 0, step=0.1),
+          selectInput(input = "direction", label = "Enter direction for proportion (above/below SWC)", choices = c("Above", "Below"), selected = "Above"),
+          
+          actionButton(inputId = "calc_prop_resp", label = "Calculate")
+          
+        ),
+          
+        mainPanel(
+          h3("Results"),
+          # table
+          p("Proportion of Responders"),
+          tableOutput(outputId="prop_resp_table"),
+          # plot
+          plotlyOutput(outputId = "prop_plot")
+            
+        )
       )
     )
+  )
 )
     
 #### END UI PART #### 
@@ -248,7 +268,7 @@ ui <- navbarPage(
 
 server <- function(input, output, session) {
   
-  # INDIV TE ###############
+  # INDIV TE #####
   indiv_TE_reactive <- reactive({
     inFile <- input$indiv_TE_data
     
@@ -292,7 +312,7 @@ server <- function(input, output, session) {
   
     
     
-  # TEST-RETEST TE #####################
+  # TEST-RETEST TE ####
   # get data
   TE_reactive <- reactive({
     inFile <- input$TE_data
@@ -349,8 +369,6 @@ server <- function(input, output, session) {
     
     output$cov_TE_table <- renderTable(cov_TEResult, rownames = FALSE)
   })
-  
-  # INDIVIDUAL CHANGE SCORES ###
   
   
   
@@ -492,9 +510,11 @@ server <- function(input, output, session) {
   
   
   
-  # VARIABILITY DUE TO INTERVENTION ####
+  
+  
+  # INTERVENTION SD ####
   # get the file path
-  CS_reactive <- reactive({
+  PR_reactive <- reactive({
     inFile <- input$int_var_data
     if (is.null(inFile))
       return(NULL)
@@ -502,10 +522,10 @@ server <- function(input, output, session) {
   })
   
   # get variables
-  observe({
-    updateSelectInput(session, "pre_variable", choices = names(CS_reactive()))
-    updateSelectInput(session, "post_variable", choices = names(CS_reactive()))
-    updateSelectInput(session, "grouping_variable", choices = names(CS_reactive()))
+  get_vars <- observe({
+    updateSelectInput(session, "pre_variable", choices = names(PR_reactive()))
+    updateSelectInput(session, "post_variable", choices = names(PR_reactive()))
+    updateSelectInput(session, "grouping_variable", choices = names(PR_reactive()))
   })
   
   # carry out the calculation & return data
@@ -522,25 +542,56 @@ server <- function(input, output, session) {
     
   })
   
+  
+  
   # RESPONDER PROPORTION ####
   # get the file path
   CS_reactive <- reactive({
-    inFile <- input$XXX
+    inFile <- input$prop_resp_data
     if (is.null(inFile))
       return(NULL)
     read.csv(inFile$datapath)
   })
-  
-  # get variables
-  observe({
-    updateSelectInput(session, "XXX", choices = names(CS_reactive()))
-    updateSelectInput(session, "XXX", choices = names(CS_reactive()))
-    updateSelectInput(session, "XXX", choices = names(CS_reactive()))
+
+  # on calculate button
+  observeEvent(input$calc_prop_resp, {
+    prop_responders <- prop_resp(mn = input$int_cs_mn, sd = input$int_sd, eff_sz = input$prop_swc_cutoff, direction = input$direction)
+    colnames(prop_responders) <- c("Change Score Mean", "Intervention SD", "Responder Proportion")
+    # render output
+    output$prop_resp_table <- renderTable(prop_responders, rownames = FALSE)
+    
+    ## make plot ##
+    # mean & sd
+    cs_mn <- prop_responders[,1]
+    intervntn_sd <- prop_responders[,2]
+    prop <- prop_responders[,3]
+    x <- seq(from = cs_mn-(3*intervntn_sd), to = cs_mn+(3*intervntn_sd), by = 0.1) # generate change scores
+    y <- dnorm(x,cs_mn,intervntn_sd)
+    # create plot
+    density_df <- data.frame(x=x, y=y)
+    
+    # quantile cutoff
+    if(input$direction == 'Above'){
+      prop <- quantile(density_df$x, probs = 1-prop) # cutoff for plot
+    }
+    else{
+      prop <- quantile(density_df$x, probs = prop) # cutoff for plot
+    }
+    # plot
+    prop_plot <- ggplot(density_df, aes(x=x, y=y)) + geom_line() # plot of normally distributed scores
+    if(input$direction == 'Above'){
+      prop_plot <- prop_plot + geom_area(data = subset(density_df, x >= prop), fill = 'cadetblue', alpha = 0.5) # shade above
+    }
+    
+    else{
+      prop_plot <- prop_plot + geom_area(data = subset(density_df, x <= prop), fill = 'cadetblue', alpha = 0.5) # shade below
+    }
+    
+    prop_plot <- prop_plot + labs(title="Distribution of change scores")
+    prop_plot <- ggplotly(prop_plot)
+    output$prop_plot <- renderPlotly(prop_plot)
   })
-  
-  
-  # await user input
-  # carry out the calculation & return data
+
 
 
   
