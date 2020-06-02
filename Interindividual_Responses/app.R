@@ -27,7 +27,8 @@ ui <- navbarPage(
   
   navbarMenu("Typical Error",
       
-  #### 1 - INDIVIDUAL TE METHOD ####       
+  #### 1 - INDIVIDUAL TE METHOD ####     
+  
       tabPanel("Individual typical error from test retest data",
                
         h3("Typical Error from Individual Test Data"),
@@ -102,10 +103,6 @@ ui <- navbarPage(
   ),
   
   
-  
-  
-  
-  
   #### CHANGE SCORE COMPONENTS ####
   
   navbarMenu("Change Scores",
@@ -168,7 +165,9 @@ ui <- navbarPage(
                       )
              ),
              
+  
   #### 3 - SMALLEST WORTHWHILE CHANGE ####
+  
              tabPanel("Smallest Worthwhile Change",
                       
               sidebarLayout(
@@ -195,14 +194,12 @@ ui <- navbarPage(
               )
             ) # close tabPanel
   ),
-            
-
-
   
   
   #### RESPONDER PROPORTION COMPONENTS ####
   
   navbarMenu("Proportion of Responders",  
+             
   #### 1 - INTERVENTION SD ####           
     tabPanel("Intervention standard deviation",
          
@@ -231,6 +228,7 @@ ui <- navbarPage(
         )
       )
     ),
+  
     
   #### 2 - RESPONDER PROPORTION ####
     tabPanel("Responder Proportion",
@@ -288,24 +286,29 @@ server <- function(input, output, session) {
       indiv_TEResult <- indiv_te_t(df=df, ci=var) # apply function
 
       # Table
-      output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
+      if(nrow(df) == 1){
+        output$indiv_TE_table <- renderText("Cannot calculate TE with one observation.")
+      }
+      else{
+        output$indiv_TE_table <- renderTable(indiv_TEResult, rownames = FALSE)
       
-      # download data
-      output$downloadData <- downloadHandler(
-        filename = "indiv_TEResult.csv",
-        content = function(file){
-          write.csv(indiv_TEResult, file, row.names=FALSE) })
+        # download data
+        output$downloadData <- downloadHandler(
+          filename = "indiv_TEResult.csv",
+          content = function(file){
+            write.csv(indiv_TEResult, file, row.names=FALSE) })
       
-      # Plot
-      indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=ID, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) + scale_x_discrete(limits=indiv_TEResult$ID)
+        # Plot
+        indiv_te_plot <- ggplot() + geom_pointrange(data=indiv_TEResult, aes(x=ID, y=`Indiv Test Means`, ymin=`Lower CI Limit`, ymax=`Upper CI Limit`), alpha=0.2, size=1) + scale_x_discrete(limits=indiv_TEResult$ID)
       
-      indiv_te_plot <- indiv_te_plot + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Moderated Lower CI Limit`, ymax=`Moderated Upper CI Limit`), colour='chocolate', size=1.2)
+        indiv_te_plot <- indiv_te_plot + geom_pointrange(data=indiv_TEResult, aes(x=`ID`, y=`Indiv Test Means`, ymin=`Moderated Lower CI Limit`, ymax=`Moderated Upper CI Limit`), colour='chocolate', size=1.2)
       
-      indiv_te_plot <- indiv_te_plot + coord_flip()
-    
-      # output as plotly
-      output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
-      } # closes if statement
+        indiv_te_plot <- indiv_te_plot + coord_flip()
+       
+        # output as plotly
+        output$indiv_TE_plot <- renderPlotly(indiv_te_plot)
+         } # closes if n == 1
+      } # closes if file loaded
       
     }) # closes observeEvent
 
