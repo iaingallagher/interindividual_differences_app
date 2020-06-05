@@ -5,9 +5,9 @@
 # 1.1 INDIVIDUAL TE WITH CI #####
 
 # Individual te CI, t dist 
-# sd of >10 test-retest in same individual
+# using t-test to help moderate CI's given small num of test-retest
 # calculates CI with sd from tests and moderated CI with sd / sqrt(n tests) (EXTENSION 1)
-# outputs df with dmean, te, unmoderated and moderated CI limits
+# outputs df with mean, te, unmoderated and moderated CI limits
 indiv_te_t <- function(df, ci){
   
   n_tests <- nrow(df) # get number of tests from number of dataframe rows
@@ -17,9 +17,9 @@ indiv_te_t <- function(df, ci){
   
   ## calc unmoderated ci for TE's
   ## uses t-dist but unmoderated se
-  ci_lim <- qt((1-ci)/2, df = n_tests, lower.tail=F)  # for normal dist
-  indiv_te_lower <- indiv_rep_means - (indiv_te_vals*ci_lim)
-  indiv_te_upper <- indiv_rep_means + (indiv_te_vals*ci_lim)
+  ci_quantile <- qt((1-ci)/2, df = n_tests-1, lower.tail=F)  # t dist, df = n-1
+  indiv_te_lower <- indiv_rep_means - (indiv_te_vals * ci_quantile)
+  indiv_te_upper <- indiv_rep_means + (indiv_te_vals * ci_quantile)
   
   # EXTENSION 1, account for >1 test using std err
   
@@ -70,7 +70,7 @@ TE <- function(t1, t2, ci){
 
 # 1.3 TE FROM PREV LIT CoV #####
 
-# input observed score & CoV for procedure
+# input CoV, observed score & desired CI
 cov_te <- function(cv, os, ci){
   cov_te_est <- (cv*os)/100 # Swinton 2018
   
@@ -85,11 +85,23 @@ cov_te <- function(cv, os, ci){
   return(cv_df)
 }
 
+# 1.4 TE FROM LIT BASED ON MEAN OF TESTS
+
+# input CoV, df & desired CI
+grp_cov_te <- function(cv, df, ci){
+
+  baseline_mean <- mean(df)
+  grp_cov_te_est <- cov_te(cv=cv, os=baseline_mean, ci=ci)
+
+  return(grp_cov_te_est)
+}
+
+
 
 
 # 2 - CHANGE SCORES ####
 
-# 2.1 - CI for change scores
+# 2.1 - CI FOR CHANGE SCORES
 # input two vectors representing pre & post intervention values for number of indivs
 # est te & te ci
 
@@ -100,7 +112,7 @@ cs_ci <- function(pre, post, te, ci){
   change_sd <- te*sqrt(2) # vector of change score sds
   
   # use t-dist for CIs
-  deg_free <- length(change_score)
+  # deg_free <- length(change_score) ## CURRENTLY NOT USED
   # calc ci for change scores
   # ci_lim <- qt((1-ci)/2, df = deg_free, lower.tail=F)  # for t dist
   ci_lim <- qnorm((1-ci)/2, lower.tail=F) # for norm dist

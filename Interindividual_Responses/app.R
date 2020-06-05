@@ -15,13 +15,52 @@ source("interindividual_response_functions.R")
 
 # Define UI for application that draws a histogram
 ui <- navbarPage(
-  
   #### MAIN PAGE ####
   title = "Statistics for Sports Science",
-  mainPanel(img(src="swinton_2018.png", align = "center", width=400),
-            
-    p("Swinton, Paul A., Ben Stephens Hemingway, Bryan Saunders, Bruno Gualano, and Eimear Dolan. 2018. ‘A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription’. Frontiers in Nutrition 5. https://doi.org/10.3389/fnut.2018.00041.
-")),
+  sidebarLayout(
+    sidebarPanel(
+      img(src="swinton_2018.png", align = "center", width=400),
+      p("Swinton, Paul A., Ben Stephens Hemingway, Bryan Saunders, Bruno Gualano, and Eimear Dolan. 2018. ‘A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription’. Frontiers in Nutrition 5. ",  a(href = "https://doi.org/10.3389/fnut.2018.00041", "https://doi.org/10.3389/fnut.2018.00041"),".")
+    ),
+ 
+  mainPanel(
+    h1("Instructions"),
+      p("This web app carries out calculations for typical error and generating confidence intervals for group and individual change scores as detailed in Swinton et al, 2018. There are three main components dealing with typical error, change scores and proportion of responders. The subcomponents associated with each of these are available through the tabs at the top of this page."),
+    
+      h2("Typical Error components"),
+    
+        h3("Typical error for a procedure with n>10 tests on individual(s)."),
+          p("This is a rare scenario but may be useful. Select Typical Error -> Individual TE from multiple repeated measures (n>10). Select a data file containing the test data. For a group this should be a comma-separated file with test occasions as rows and individuals in columns. Enter the desired confidence level for teh true score and press the Calculate TE button. Example data is available ", a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/individual_TE_data.csv', 'here', .noWS = "outside"), '.', .noWS = c("after-begin", "before-end")),
+      
+        h3("Typical error from group test-retest data."),
+          p("This is a more usual scenario. Select a data file to upload. Select the columns that represent the test and retest data for your group. Select the required confidence level for the true score and press the Calculate TE button. Example data is available " , a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/orig_paper_data_only.csv', 'here', .noWS = "outside"), '.', .noWS = c("after-begin", "before-end"), "To reproduce the muscle carnitine example from the spreadsheet accompanying the paper select MCARN_test as test and MCARN_restest as retest."),
+      
+        h3("Typical error from a coefficient of variation."),
+          p("Sometimes there are no data available to calculate typical error and thus a robust confidence interval around a single observed score. Coefficient of variaion can be used instead. See section 1.2 of Swinton et al, 2018 for details. Simply enter a single observed score, a literature derived coefficient of variation and a desird confidence interval for the observed score and press the Calculate TE button. To reproduce the example in section 1.2 of the original paper CoV would be 4.94, the observed score would be 43.0 and the confidence level would be 0.75."),
+      
+        h3("Typical error from a coefficient of variation with scores from a group."),
+          p("Although not detailed explicitly in the paper confidence intervals for a group obsered scores can also be generated using a literature derived CoV (see the tab labelled SF-S6. TE from CV in the spreadsheet accompanying the orginal paper). For this component simply enter a file, the desired column of observed scores, the literature derived CoV and a desired confidence interval for the observed scores. To reproduce the example from the spreadsheet accompanying the paper load the example data and select CCT110_baseline as the variable, 4.94 as the typical error and choose a confidence level."),
+    
+    h2("Change Score components"),
+      
+      h3("CI for Individual Change Score"),
+        p("This component can be used to calculate confidence intervals around an observed score for a single individual. Enter the pre- and post-intervention scores, the typical error for the procedure used, the smallest worthwhile change (optional, will default to zero) and the confidence level required. To reproduce the example from the paper using muscle carnosine content enter 22.89 for the pre-score, 27.26 for post-score, 0.52 for typical error and 0.5 for desired confidence interval. These data are from subject 8 in the example file available " , a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/orig_paper_data_only.csv', 'here', .noWS = "outside"), '.', .noWS = c("after-begin", "before-end")),
+    
+      h3("CI for Group Change Scores"),
+        p("This component can be used to calculate confidence intervals around observed scores for a group of individuals. Choose a file and select the column that represent the subject identifiers, the pre- and post-intervention scores, the typical error for the procedure, the smallest worthwhile change (optional, will default to zero) and the desired confidence level. To generate 90% confidence intervals for muscle carnosine pre- and post-intervention select the example file from ", a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/orig_paper_data_only.csv', 'here', .noWS = "outside"), '.', .noWS = c("after-begin", "before-end"), ", select the Participant column as subject ID, select the MCARN_baseline and MCARN_post variables as pre- and post-scores respectively, enter 0.52 as the typical error, leave the Desired SWC at 0 and enert 0.9 as the desired confidence level."),
+    
+      h3("Smallest Worthwhile Change"),
+        p("This component will calculate the smallest worthwhile change accounting for both the typical error and a desired effect size. Select the file containing the data and the data in the file containing measurements of interest. Enert the effect size considered meaningful and the typical error for the procedure. To reproduce the CCT110 example from the paper select the example ", a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/orig_paper_data_only.csv', 'data', .noWS = "outside"), ", the CCT110_baseline column, enter 0.2 for the effect size and 2.2 for the typical error."),
+    
+    h2("Proportion of responders components"),
+    
+      h3("Intervention standrd deviation"),
+        p("This component will calculate a the chnage in score variability due to the intervention. These calculations require a control group. Select a file and the variables representing the pre- and post-intervention measures in that file. Select the variable indicating the control and intervention groups and finally enter the labels for these groups. To reproduce the example in the paper select the example ", a(href = "https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/orig_paper_data_only.csv", "data", .noWS = "outside") , ", MCARN_baseline as the pre-intervention measures, MCARN_post as the post-intervention measures, Group as the grouping indicator and finally enter the labels for each group (B-A for intervention group and PLA for control group."),
+    
+      h3("Responder proportion"),
+        p("This component will calculate the proportion of responders according to whether the confidence interval for an observed score overlaps with a defined smallest worthwhile change. To reporduce the example in the paper enter 10.2 as the mean change score for the intervention, 5.07 as the standard deviation due to the intervention, a desired efect size of 0.2 and leave the direction for proportion set at 'Above'.")
+      )
+  ),
   
   #### TYPICAL ERROR COMPONENTS ####
   
@@ -29,9 +68,9 @@ ui <- navbarPage(
       
   #### 1 - INDIVIDUAL TE METHOD ####     
   
-      tabPanel("Individual typical error from test retest data",
+      tabPanel("Individual TE from multiple repeated measures (n>10)",
                
-        h3("Typical Error from Individual Test Data"),
+        h3("Typical Error for an individual"),
         
             
           sidebarLayout(
@@ -58,10 +97,10 @@ ui <- navbarPage(
         ), # close tabPanel
       
   #### 2 - GROUP TEST RETEST DATA METHOD #### 
-    tabPanel("Typical Error from group test retest data",
+    tabPanel("Test Typical Error from group test retest data",
                
-      p("Enter data to calculate typical error from Group Test-Retest Data."),
-      p("The input data should be comma-delimited with test and retest data."),
+      p("Enter data to calculate typical error from group Test-Retest Data."),
+      p("The input data should be comma-delimited with test and retest data in two columns."),
         sidebarLayout(
           sidebarPanel(
             fileInput(inputId = "TE_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
@@ -74,14 +113,17 @@ ui <- navbarPage(
                  
           mainPanel(
             h3("Results"),
+            p("The results are shown in table form below."),
             tableOutput(outputId="TE_table"),
+            
+            p("The figure below shows the theoretical distribution of difference scores. This should be centered at zero and have a standard deviation equal to the TE multiplied by the square root of 2. See Swinton, 2018 (Sect 1.1) for details."),
             plotlyOutput(outputId = "TE_plot")
-          ) # closes main panel
-        ) # closes sidebarLayout
+          ) 
+        ) 
       ),# closes tabPanel for group test retest calculations
 
   #### 3 - TE FROM LITERATURE ####
-      tabPanel("Typical error from a literature derived coefficient of variation",
+      tabPanel("Typical error from a literature derived coefficient of variation with individual datapoint",
                
         p("Typical Error for a score using coefficient of variation."),
         p("Enter values to calculate typical error using coefficient of variation data from literature or other sources."),
@@ -97,11 +139,34 @@ ui <- navbarPage(
           mainPanel(
             h3("Results"),
             tableOutput(outputId = "cov_TE_table")
+            # ADD A PLOT WITH OBS SCORE AND CI
           ) 
         )
-      )
-  ),
+      ),
   
+  #### 4 - TE FROM LITERATURE WITH GROUP DATA ####
+      tabPanel("Typical error from a literature derived coefficient of variation with group data",
+           
+           p("Typical Error for a score using coefficient of variation."),
+           p("Enter values to calculate typical error using coefficient of variation data from literature or other sources."),
+           
+           sidebarLayout(
+             sidebarPanel(
+               fileInput(inputId = "grp_TE_CV_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+               selectInput(inputId = "grp_values", label = "Select test values", choices = NULL),
+               numericInput(inputId = "grp_lit_cv", label="Enter CoV", value=0),
+               numericInput(inputId = "grp_lit_ci", label="CI Level", value=0.95, min=0.5,max=1, step=0.05),
+               actionButton(inputId = "grp_update_cov_TE", label = "Calculate TE")
+             ),
+             
+             mainPanel(
+               h3("Results"),
+               tableOutput(outputId = "grp_cov_TE_table")
+               # ADD A PLOT WITH SCORES AND CI
+             ) 
+           )
+        )
+    ),
   
   #### CHANGE SCORE COMPONENTS ####
   
@@ -260,11 +325,14 @@ ui <- navbarPage(
   )
 )
     
+
 #### END UI PART #### 
 
 # SERVER LOGIC ####
 
 server <- function(input, output, session) {
+  
+  # EXAMPLE DATA
   
   # INDIV TE #####
   indiv_TE_reactive <- reactive({
@@ -361,7 +429,7 @@ server <- function(input, output, session) {
   
   
   
-  # COV TE ####
+  # SINGLE COV TE ####
   
   # on update button
   observeEvent(input$update_cov_TE,{
@@ -373,7 +441,32 @@ server <- function(input, output, session) {
     output$cov_TE_table <- renderTable(cov_TEResult, rownames = FALSE)
   })
   
+  # GROUP COV TE ####
+  # get data
+  GRP_CV_reactive <- reactive({
+    inFile <- input$grp_TE_CV_data
+    if (is.null(inFile))
+      return(NULL)
+    read.csv(inFile$datapath)
+  })
   
+  # get variables into R session
+  observe({
+    updateSelectInput(session, "grp_values", choices = names(GRP_CV_reactive()))
+  })
+  
+  # generate output
+  observeEvent(input$grp_update_cov_TE, {
+    if(!is.null(input$grp_TE_CV_data)){
+      
+      df <- read.csv(input$grp_TE_CV_data$datapath, header = TRUE, sep = ",")
+      baseline_vals <- df[, which(colnames(df) == input$grp_values)]
+      
+      grp_cov_TEResult <- grp_cov_te(input$grp_lit_cv, baseline_vals, input$grp_lit_ci)
+      output$grp_cov_TE_table <- renderTable(grp_cov_TEResult, rownames = FALSE)
+      
+    }
+  })
   
   # INDIV CHANGE SCORES ####
     observeEvent(input$update_indiv_CS, {
