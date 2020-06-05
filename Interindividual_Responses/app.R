@@ -208,7 +208,7 @@ ui <- navbarPage(
                           # read in file & enter vars, te & ci
                           p("Enter data below to calculate change scores with CI for a group of individuals."),
                           p("Data should be comma-delimited and include a subject ID and pre and post measures for analysis."),
-                          fileInput(inputId = "CS_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
+                          fileInput(inputId = "GRP_CS_data", label = "Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
                           
                           selectInput(input = "id", label = "Indiv ID", choices = ""),
                           selectInput(inputId = "multiple_pre", label = "Pre", choices = ""),
@@ -468,6 +468,7 @@ server <- function(input, output, session) {
     }
   })
   
+  
   # INDIV CHANGE SCORES ####
     observeEvent(input$update_indiv_CS, {
       
@@ -514,8 +515,8 @@ server <- function(input, output, session) {
   # GROUP OF CHANGE SCORES ####
   
   # get the group data
-  CS_reactive <- reactive({
-    inFile <- input$CS_data
+  GRP_CS_reactive <- reactive({
+    inFile <- input$GRP_CS_data
     if (is.null(inFile))
       return(NULL)
     read.csv(inFile$datapath)
@@ -523,16 +524,16 @@ server <- function(input, output, session) {
   
   # get pre & post scores
   observe({
-    updateSelectInput(session, "id", choices = names(CS_reactive()))
-    updateSelectInput(session, "multiple_pre", choices = names(CS_reactive()))
-    updateSelectInput(session, "multiple_post", choices = names(CS_reactive()))
+    updateSelectInput(session, "id", choices = names(GRP_CS_reactive()))
+    updateSelectInput(session, "multiple_pre", choices = names(GRP_CS_reactive()))
+    updateSelectInput(session, "multiple_post", choices = names(GRP_CS_reactive()))
   })
   
   # on update button
   observeEvent(input$update_group_CS, {
-    if(!is.null(input$CS_data)){
+    if(!is.null(input$GRP_CS_data)){
       
-      df <- read.csv(input$CS_data$datapath, header = TRUE, sep = ",")
+      df <- read.csv(input$GRP_CS_data$datapath, header = TRUE, sep = ",")
       ids <- df[, which(colnames(df) == input$id)]
       ids <- paste('Subject:', ids, sep = ' ')
       pre <- df[, which(colnames(df) == input$multiple_pre)]
@@ -574,7 +575,7 @@ server <- function(input, output, session) {
   
   # SWC ####
   # get the file path
-  CS_reactive <- reactive({
+  SWC_reactive <- reactive({
     inFile <- input$SWC_data
     if (is.null(inFile))
       return(NULL)
@@ -583,7 +584,7 @@ server <- function(input, output, session) {
   
   # get variable for SWC calc
   observe({
-    updateSelectInput(session, "swc_variable", choices = names(CS_reactive()))
+    updateSelectInput(session, "swc_variable", choices = names(SWC_reactive()))
   })
   
   # carry out the calculation & return data
@@ -637,17 +638,8 @@ server <- function(input, output, session) {
     # plot the intervention score normal distribution
     
   })
-  
-  
-  
+
   # RESPONDER PROPORTION ####
-  # get the file path
-  CS_reactive <- reactive({
-    inFile <- input$prop_resp_data
-    if (is.null(inFile))
-      return(NULL)
-    read.csv(inFile$datapath)
-  })
 
   # on calculate button
   observeEvent(input$calc_prop_resp, {
