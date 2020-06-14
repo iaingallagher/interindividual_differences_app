@@ -151,7 +151,7 @@ int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
   # cal mean diff for int group
   int_mean_diff <- mean(int_post_data - int_pre_data)
   # return df
-  data_out <- data.frame(`Intervention Mean Diff` = int_mean_diff, `Intervention SD` = intervention_sd)
+  data_out <- data.frame(int_mean_diff, intervention_sd)
   
   # return(intervention_sd)
   return(data_out)
@@ -165,7 +165,12 @@ int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
 prop_resp <- function(mn, sd, eff_sz, direction){
   
   # calculate prop resp for normal dist
-  swc <- sd * eff_sz
+  if(eff_sz != 0){
+    swc <- sd * eff_sz
+  }
+  else{
+    swc <- sd
+  }
   
   # calculate prop if above
   if (direction == "Above"){
