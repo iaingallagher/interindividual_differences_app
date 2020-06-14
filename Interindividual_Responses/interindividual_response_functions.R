@@ -135,7 +135,7 @@ cs_ci <- function(pre, post, te, ci){
 int_sd <- function(df, pre, post, grp_var, ctrl_ind, int_ind){
   # get group data
   # https://stackoverflow.com/questions/17075529/subset-based-on-variable-column-name
-  # mad syntax - seems overly complex to pass an unknown column
+  # mad syntax - quite complex to pass an unknown column
   ctrl_pre_data <- df[ df[[grp_var]] == ctrl_ind , pre]
   ctrl_post_data <- df[ df[[grp_var]] == ctrl_ind , post]
   ctrl_diff <- ctrl_post_data - ctrl_pre_data
@@ -179,3 +179,73 @@ prop_resp <- function(mn, sd, eff_sz, direction){
   ret_df <- data.frame(mn, sd, prop_responders)
   return(ret_df)
 }
+
+# Bootstrap CI for Proportion of Responders ####
+prop_ci_bootstrap <- function(df, pre, post, grp_var, ctrl_ind, intv_ind, eff_sz = 0.2, direction, ci = 0.95, iters = 10){
+  
+  collect_props <- vector(mode = 'numeric', length = iters)
+  moe_multiplier <- qnorm((1-ci)/2, lower.tail=F)
+
+  # get the required data
+  samp_df <- cbind(df[,names(df) == pre], df[,names(df) == post]) # col 1 = pre, col 2 = post
+
+  # get the group level data
+  grps <- df[,colnames(df) == grp_var]
+  ctrl_data <- samp_df[grps == ctrl_ind,]
+  intv_data <- samp_df[grps == intv_ind,]
+
+  # sample size driven by smallest grp if reqd
+  samp_sz <- min(nrow(ctrl_data), nrow(intv_data))
+  
+  # bootstrapping
+  for (i in 1:iters){
+    # create samples, sample in pairs
+    # indices to pull from each df, make diff to increase randomness
+    ctrl_samp_ind <- sample(1:samp_sz, size = samp_sz, replace = TRUE)
+    intv_samp_ind <- sample(1:samp_sz, size = samp_sz, replace = TRUE)
+    
+    # get the 2 column samples
+    ctrl_samp <- ctrl_data[ctrl_samp_ind,]
+    intv_samp <- intv_data[intv_samp_ind,]
+    
+    # sample diffs
+    ctrl_diffs <- ctrl_samp[,2] - ctrl_samp[,1]
+    intv_diffs <- intv_samp[,2] - intv_samp[,1]
+    
+    # sample vars
+    ctrl_var <- var(ctrl_diffs)
+    intv_var <- var(intv_diffs)
+
+    # skip iter subsequent calcs if can't be done
+    if(intv_var < ctrl_var){
+      next
+    }
+    
+
+      # values needed for prop resp calc
+      intv_mean_diff <- mean(intv_diffs)
+      sd_intv <- sqrt(intv_var - ctrl_var)
+      swc <- eff_sz * sd_intv
+  
+      # calculate prop if above
+      if (direction == "Above"){
+        collect_props[i] <- pnorm(swc, intv_mean_diff, sd_intv, lower.tail = FALSE)
+      }
+      else{
+        collect_props[i] <- pnorm(swc, intv_mean_diff, sd_intv)
+      }
+  
+  }
+
+  props_mn <- mean(collect_props)
+  props_sd <- sd(collect_props)
+  props_lower <- props_mn - moe_multiplier * props_sd
+  if (props_lower < 0){props_lower = 0.00}
+  props_upper <- props_mn + moe_multiplier * props_sd
+  if (props_upper > 1){props_upper = 1.00}
+  
+  ret_df <- data.frame(prop_mn = props_mn, props_sd = props_sd, ci_lower = props_lower, ci_upper = props_upper)
+  return(ret_df)
+}
+
+
