@@ -15,11 +15,13 @@ source("interindividual_response_functions.R")
 
 # Define UI for application that draws a histogram
 ui <- navbarPage(
+  
   #### MAIN PAGE ####
   title = "Statistics for Sports Science",
   sidebarLayout(
+    
     sidebarPanel(
-      img(src="swinton_2018.png", align = "center", width=400),
+      img(src="swinton_2018.png", align = "center", width=200),
       p("Swinton, Paul A., Ben Stephens Hemingway, Bryan Saunders, Bruno Gualano, and Eimear Dolan. 2018. ‘A Statistical Framework to Interpret Individual Response to Intervention: Paving the Way for Personalized Nutrition and Exercise Prescription’. Frontiers in Nutrition 5. ",  a(href = "https://doi.org/10.3389/fnut.2018.00041", "https://doi.org/10.3389/fnut.2018.00041"),".")
     ),
  
@@ -37,9 +39,6 @@ ui <- navbarPage(
   
       tabPanel("Individual TE from multiple repeated measures (n>10)",
                
-        h3("Typical Error for an individual"),
-        
-            
           sidebarLayout(
             sidebarPanel(
               # INSTRUCTIONS
@@ -50,8 +49,12 @@ ui <- navbarPage(
               p("Example data is available ", a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/individual_TE_data.csv', 'here', .noWS = "outside"), '.', .noWS = c("after-begin", "before-end")),
               p("The confidence intervals from the individual TE are calculated using the t-distribution irrespective of the number of observations for each individual."),
               
-              fileInput(inputId = "indiv_TE_data", label="Upload a data file", multiple = FALSE, placeholder = "No file selected", accept = "csv"),
-              numericInput(inputId = "indiv_te_ci", label="CI Level", value=0.95, min=0.5, max=1, step=0.05),
+              fileInput(inputId = "indiv_TE_data", label="Upload a data file", 
+                        multiple = FALSE, placeholder = "No file selected", 
+                        accept = "csv"),
+              
+              numericInput(inputId = "indiv_te_ci", label="CI Level", 
+                           value=0.95, min=0.5, max=1, step=0.05),
               actionButton(inputId = "update_indiv_TE", label = "Calculate TE")
             ), # closes sidebarPanel
               
@@ -59,7 +62,7 @@ ui <- navbarPage(
               h3("Results"),
               p("The table below shows the mean for each individual over all tests and the typical error estimated for each individual."),
               p("Two confidence values are shown for the TE. The moderated confidence interval takes account of the number of tests carried out on each individual whilst the unmoderated confidence interval is wider because it does not accont for the extra data collected for each individual through the repeated tests."),
-              p("The data are shown on a plot below the table."),
+              p("The data are plotted below the table."),
               tableOutput(outputId = "indiv_TE_table"),
               downloadButton("downloadData", "Download Table"),
                 plotlyOutput(outputId = "indiv_TE_plot", width="50%", height="75%")
@@ -75,7 +78,7 @@ ui <- navbarPage(
             # INSTRUCTIONS
             h4("Typical error from group test-retest data."),
             p("If you have data from individuals and each individual has completed a test and a re-test use this component to calculate typical error and a confidence interval for the individual scores."),
-            p("Select a data file to upload. The file should be comma-separated values."),
+            p("Select a data file to upload. The file should be in comma-separated values (.csv) format."),
             p("Select the columns that represent the test and retest data."),
             p("Select the required confidence level for the true score and press the Calculate TE button."),
             p("Example data is available " , a(href = 'https://github.com/iaingallagher/interindividual_response_app/blob/master/Interindividual_Responses/orig_paper_data_only.csv', 'here', .noWS = "outside"), '.', .noWS = c("after-begin", "before-end")), 
@@ -448,11 +451,14 @@ server <- function(input, output, session) {
       
       # Plot
       x <- seq(from = -3*TEResult[,2], to= 3*TEResult[,2], by = 0.1) # generate potential diff scores
+      y <- dnorm(x, 0, sd = TEResult[,2])
       # create plot ASSUMING ZERO MEAN
-      density_df <- data.frame(x=x)
+      density_df <- data.frame(x=x, y=y)
       # plot
-      dens_p <- ggplot(density_df, aes(x=x)) + stat_function(fun=dnorm, n=101, args=list(mean=0, sd=TEResult[,2])) # plot of normally distributed difference scores
-      dens_p <- dens_p + labs(title="Distribution of difference scores")
+      dens_p <- ggplot(density_df, aes(x=x, y=y)) + geom_line()
+    
+      # plot of normally distributed difference scores
+      dens_p <- dens_p + labs(title="Distribution of difference scores", x="", y="")
       dens_p <- ggplotly(dens_p)
       output$TE_plot <- renderPlotly(dens_p)
     }

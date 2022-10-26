@@ -6,8 +6,9 @@
 
 # Individual te CI, t dist 
 # using t-test to help moderate CI's given small num of test-retest
-# calculates CI with sd from tests and moderated CI with sd / sqrt(n tests) (EXTENSION 1)
-# outputs df with mean, te, unmoderated and moderated CI limits
+# calculates CI with sd from tests and moderated CI with sd / sqrt(n tests) (EXTENSION 1; accounts for number of tests i.e. 'confidence in evidence')
+# outputs df with mean, typical error (te), unmoderated and moderated CI limits
+# test data is individual_TE_data.csv from ...
 indiv_te_t <- function(df, ci){
   
   n_tests <- nrow(df) # get number of tests from number of dataframe rows
